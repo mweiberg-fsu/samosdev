@@ -84,6 +84,33 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
     }
     curl_multi_close($mh);
     
+    // Fetch Z flags from database for all variables in this group
+    $zFlagsByVar = array();
+    foreach ($groupVars as $var) {
+      $zFlagsByVar[$var] = array();
+      
+      if ($order > 100) {
+        $zQuery = "SELECT kv.known_variable_id, mqcs.*, kv.variable_name 
+                   FROM merged_qc_summary mqcs 
+                   INNER JOIN known_variable kv ON mqcs.known_variable_id = kv.variable_id 
+                   WHERE merged_file_history_id = $file_history_id 
+                   AND kv.variable_name = '$var'";
+      } else {
+        $zQuery = "SELECT kv.known_variable_id, qcs.*, kv.variable_name 
+                   FROM qc_summary qcs 
+                   INNER JOIN known_variable kv ON qcs.known_variable_id = kv.variable_id 
+                   WHERE daily_file_history_id = $file_history_id 
+                   AND kv.variable_name = '$var'";
+      }
+      
+      db_query($zQuery);
+      if ($zRow = db_get_row()) {
+        if ($zRow->z == 1) {
+          $zFlagsByVar[$var] = 'Z';
+        }
+      }
+    }
+    
     // Process results
     foreach ($groupVars as $var) {
       if (!isset($results[$var])) continue;
@@ -107,10 +134,16 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
         if ($filterEnd && $timePart > $filterEnd) { $flag_index++; continue; }
         if ($val === null || $val === '') { $flag_index++; continue; }
 
+        // Use Z flag if available, otherwise use flag from endpoint
+        $flag = isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' ';
+        if ($flag === ' ' || $flag === '') {
+          $flag = $zFlagsByVar[$var] ?? ' ';
+        }
+
         $points[] = array(
           'date' => $ts,
           'value' => $val,
-          'flag' => isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' '
+          'flag' => $flag
         );
         $flag_index++;
       }
