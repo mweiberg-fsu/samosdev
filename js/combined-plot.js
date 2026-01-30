@@ -116,6 +116,12 @@
                 }))
                 .filter(p => p.value != null && !isNaN(p.value));
 
+            // DEBUG: Log all flags for this variable
+            const flags = processedData[v].map(p => p.flag).filter(f => f && f.trim() !== ' ');
+            if (flags.length > 0) {
+                console.log(`${v} flags:`, flags);
+            }
+
             allValidPoints.push(...processedData[v]);
         });
 
