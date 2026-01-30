@@ -106,7 +106,6 @@
         // Process data + preserve flags
         const allValidPoints = [];
         const processedData = {};
-        const varsWithZFlags = [];
 
         vars.forEach(v => {
             processedData[v] = (data[v]?.points || [])
@@ -116,21 +115,8 @@
                     flag: p.flag || ' '
                 }))
                 .filter(p => p.value != null && !isNaN(p.value));
-
-            // DEBUG: Check if this variable has any Z flags
-            const hasZFlag = processedData[v].some(p => p.flag === 'Z');
-            if (hasZFlag) {
-                varsWithZFlags.push(v);
-            }
-
             allValidPoints.push(...processedData[v]);
         });
-        
-        if (varsWithZFlags.length > 0) {
-            console.log('Variables with Z flags:', varsWithZFlags);
-        } else {
-            console.log('No Z flags found');
-        }
 
         if (allValidPoints.length === 0) return;
 
@@ -348,7 +334,7 @@
             axisGroup.selectAll('path, line').style('stroke', axisColor);
             axisGroup.selectAll('text')
                 .style('fill', axisColor)
-                .style('font-size', '13px');
+                .style('font-size', '15px');
 
             // Y-axis label
             svg.append('text')
@@ -358,7 +344,7 @@
                 .attr('dy', isLeft ? '1em' : '-0.3em')
                 .style('text-anchor', 'middle')
                 .style('font-family', 'Arial, Helvetica, sans-serif')
-                .style('font-size', '13px')
+                .style('font-size', '15px')
                 .style('font-weight', 'bold')
                 .style('fill', axisColor)
                 .text(unit);
@@ -371,7 +357,7 @@
             .call(d3.axisBottom(x).ticks(12).tickFormat(d3.timeFormat('%H:%M')))
             .selectAll('text')
             .style('text-anchor', 'end')
-            .style('font-size', '13px')
+            .style('font-size', '15px')
             .attr('dx', '-0.8em')
             .attr('dy', '0.15em')
             .attr('transform', 'rotate(-45)');
