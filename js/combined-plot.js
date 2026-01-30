@@ -416,17 +416,17 @@
                         'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#444444'
                     };
                     const bg = colors[flag] || '#444444';
-                    const textColor = ['I', 'Z'].includes(flag) ? '#000' : '#FFF';
+                    const textColor = flag === 'I' ? '#000' : '#FFF';
 
                     tip.html(`
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 180px;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 180px; padding: 0; margin: 0;">
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px;">
                                 <div style="width: 18px; height: 18px; background: ${color(v)}; border: 1px solid #000; border-radius: 4px;"></div>
                                 <strong style="font-size: 15px; color: #222;">${v}</strong>
                             </div>
-                            <div style="font-size: 14px; color: #444;">${timeStr}</div>
-                            <div style="font-weight: bold; font-size: 16px; color: #000;">${displayValue}</div>
-                            <div style="height: 50px; width: 100%; margin-top: 12px; background: ${bg}; display: flex; align-items: center; justify-content: center; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222;">
+                            <div style="font-size: 14px; color: #444; padding: 0 12px;">${timeStr}</div>
+                            <div style="font-weight: bold; font-size: 16px; color: #000; padding: 0 12px; margin-bottom: 8px;">${displayValue}</div>
+                            <div style="height: 50px; width: 100%; background: ${bg}; display: flex; align-items: center; justify-content: center; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222; box-sizing: border-box; padding: 0 12px;">
                                 FLAG: ${flag}
                             </div>
                         </div>
