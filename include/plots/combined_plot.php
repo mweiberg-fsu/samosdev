@@ -259,12 +259,18 @@ FORM;
       // Try to create better names based on common patterns
       if (in_array('LAT', $vars) || in_array('lat', $vars)) {
         $groupName = 'Position (Lat/Lon)';
+      } elseif (preg_grep('/^RAD_SW/i', $vars)) {
+        $groupName = 'Shortwave Radiation';
+      } elseif (preg_grep('/^RAD_LW/i', $vars)) {
+        $groupName = 'Longwave Radiation';
+      } elseif (preg_grep('/PAR|RAD_PAR/i', $vars)) {
+        $groupName = 'Photosynthetic Radiation';
       } elseif (in_array('PL_HD', $vars) || in_array('PL_CRS', $vars)) {
-        $groupName = 'Heading & Course';
+        $groupName = 'Platform Heading';
       } elseif (in_array('PL_WDIR', $vars)) {
         $groupName = 'Wind Direction';
       } elseif (in_array('PL_WSPD', $vars)) {
-        $groupName = 'Wind Speed';
+        $groupName = 'Earth Relative Wind Speed';
       } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
         $groupName = 'Air Temperature';
       } elseif (in_array('TS', $vars) || in_array('SST', $vars)) {
@@ -273,10 +279,10 @@ FORM;
         $groupName = 'Pressure';
       } elseif (in_array('RH', $vars)) {
         $groupName = 'Humidity';
+      } elseif (in_array('PL_SPD', $vars) || in_array('SOG', $vars)) {
+        $groupName = 'Platform Speed';
       } elseif (in_array('RAD', $vars) || in_array('SW', $vars)) {
         $groupName = 'Radiation';
-      } elseif (in_array('PL_SPD', $vars) || in_array('SOG', $vars)) {
-        $groupName = 'Speed';
       }
       
       // Special handling for 'q' flag: split TS variables from other q variables
@@ -598,11 +604,12 @@ FORM;
   ));
 
   echo '<div id="combinedChart" style="width:790px; height:520px; margin:20px auto; border:1px solid #ccc;"></div>';
-  echo '<div style="text-align:center; margin:15px;">
-        <button onclick="downloadCombinedPlot(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:10px;">Download as PNG</button>
-        <button onclick="openZoomModal(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; background:#007cba; color:white; border:none; border-radius:4px;">Zoom & Pan</button>
-        <button onclick="openShipTrackModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:4px; margin-left:10px;">Ship Track</button>
-        </div>';
+    echo '<div style="text-align:center; margin:15px;">
+      <button onclick="downloadCombinedPlot(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:8px; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold;">Download PNG</button>
+      <button onclick="downloadCombinedCSV(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:10px; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold;">Download CSV</button>
+      <button onclick="openZoomModal(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; background:#007cba; color:white; border:none; border-radius:4px;">Zoom & Pan</button>
+      <button onclick="openShipTrackModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; background:#007cba; color:white; border:none; border-radius:4px; margin-left:10px;">Ship Track</button>
+      </div>';
 
   echo "<script src=\"https://d3js.org/d3.v6.min.js\"></script>";
   echo "<script src=\"js/combined-plot.js\"></script>";

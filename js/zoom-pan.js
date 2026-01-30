@@ -317,11 +317,13 @@
             if (isLeft) {
                 yAxis = d3.axisLeft(scale).ticks(8);
                 axisOffset = -positionInSide * axisSpacing;
-                labelOffset = axisOffset - 40;
+                // Increase padding to avoid overlap with tick labels
+                labelOffset = axisOffset - 80;
             } else {
                 yAxis = d3.axisRight(scale).ticks(8);
                 axisOffset = width + positionInSide * axisSpacing;
-                labelOffset = axisOffset + 45;
+                // Increase padding to avoid overlap with tick labels
+                labelOffset = axisOffset + 85;
             }
             
             if (isWindDir) {
@@ -343,7 +345,9 @@
             // Color axis
             const axisColor = color(varsInGroup[0]);
             axisGroup.selectAll('path, line').style('stroke', axisColor);
-            axisGroup.selectAll('text').style('fill', axisColor);
+            axisGroup.selectAll('text')
+                .style('fill', axisColor)
+                .style('font-size', '15px');
 
             // Y-axis label
             g.append('text')
@@ -353,7 +357,7 @@
                 .attr('dy', isLeft ? '1em' : '-0.3em')
                 .style('text-anchor', 'middle')
                 .style('font-family', 'Arial, Helvetica, sans-serif')
-                .style('font-size', '14px')
+                .style('font-size', '15px')
                 .style('font-weight', 'bold')
                 .style('fill', axisColor)
                 .text(unit);

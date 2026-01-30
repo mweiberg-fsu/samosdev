@@ -304,13 +304,13 @@
             if (isLeft) {
                 yAxis = d3.axisLeft(scale).ticks(8);
                 axisOffset = -positionInSide * axisSpacing;
-                // Increased padding from -40 to -50 for left axes
-                labelOffset = axisOffset - 50;
+                // Increased padding to provide extra buffer for left axes
+                labelOffset = axisOffset - 80;
             } else {
                 yAxis = d3.axisRight(scale).ticks(8);
                 axisOffset = width + positionInSide * axisSpacing;
-                // Increased padding from +45 to +55 for right axes
-                labelOffset = axisOffset + 55;
+                // Increased padding to provide extra buffer for right axes
+                labelOffset = axisOffset + 85;
             }
             
             if (isWindDir) {
@@ -557,6 +557,66 @@
             });
         };
         img.src = url;
+    };
+
+    global.downloadCombinedCSV = function (chartId) {
+        // Try per-chart payloads (plot_all) first, then fallback to original chart data
+        const payload = (window.__chartPayloads && window.__chartPayloads[chartId]) ? window.__chartPayloads[chartId] : (window.__originalChartData || null);
+        if (!payload) return;
+
+        const { plotData, units: unitsMap = {}, longNames = {} } = payload;
+        const vars = Object.keys(plotData || {});
+        if (vars.length === 0) return;
+
+        // Collect all unique timestamps
+        const allTimestamps = new Set();
+        vars.forEach(v => {
+            const points = plotData[v]?.points || [];
+            points.forEach(p => allTimestamps.add(p.date));
+        });
+
+        const timestamps = Array.from(allTimestamps).sort();
+
+        // Build CSV header
+        let csv = 'Timestamp';
+        vars.forEach(v => {
+            const longName = longNames[v] || v;
+            const unit = unitsMap[v] || '';
+            csv += ',' + longName;
+            if (unit) csv += ' (' + unit.split(' (')[0] + ')';
+            csv += ',Flag';
+        });
+        csv += '\n';
+
+        // Build CSV rows
+        timestamps.forEach(ts => {
+            csv += ts;
+            vars.forEach(v => {
+                const points = plotData[v]?.points || [];
+                const point = points.find(p => p.date === ts);
+                if (point) {
+                    csv += ',' + (point.value !== null ? point.value : '');
+                    csv += ',' + (point.flag && point.flag.trim() !== ' ' ? point.flag.trim() : '');
+                } else {
+                    csv += ',,';
+                }
+            });
+            csv += '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const shipName = (payload.shipName || payload.ship || 'plot-data').replace(/[^a-zA-Z0-9]/g, '_');
+        const dateStr = payload.date ? payload.date.substring(0, 8) : new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const hsTime = (payload.hs || '00:00').replace(':', '');
+        const heTime = (payload.he || '23:59').replace(':', '');
+        const filename = `${shipName}_${dateStr}_${hsTime}-${heTime}.csv`;
+
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     global.openModal = function (chartId) {

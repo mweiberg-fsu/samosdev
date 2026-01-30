@@ -176,10 +176,11 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
     echo "<div id=\"$chartId\" style=\"width:790px; height:520px; margin:10px auto; border:1px solid #ccc; position:relative;\"></div>";
     
     // Buttons for this plot
-    echo "<div style=\"text-align:center; margin:15px;\">
-          <button onclick=\"downloadCombinedPlot('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:10px;\">Download as PNG</button>
+        echo "<div style=\"text-align:center; margin:15px;\">
+          <button onclick=\"downloadCombinedPlot('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:8px; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold;\">Download PNG</button>
+          <button onclick=\"downloadCombinedCSV('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:10px; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold;\">Download CSV</button>
           <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:#007cba; color:white; border:none; border-radius:4px;\">Zoom & Pan</button>
-          <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:4px;\">Ship Track</button>
+          <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:#007cba; color:white; border:none; border-radius:4px;\">Ship Track</button>
           </div>";
     
     $jsPayload = json_encode(array(
