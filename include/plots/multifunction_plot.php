@@ -9,7 +9,7 @@ function InsertMultifunctionPlot()
   global $file_history_id, $order, $ship, $date, $ship_id, $SERVER;
 
   // Include the plot_all module for rendering multiple plots
-  include 'plots/plot_all.php';
+  include 'include/plots/plot_all.php';
   
   /* ------1. PRE-DEFINED GROUPS ----- */
   $groups = array(
@@ -308,11 +308,43 @@ FORM;
         $groupName = 'Speed';
       }
       
-      array_push($jsGroups, array(
-        'name' => $groupName,
-        'prefix' => $prefix,
-        'vars' => $vars
-      ));
+      // Special handling for 'q' flag: split TS variables from other q variables
+      if ($prefix === 'q') {
+        $tsVars = array();
+        $otherVars = array();
+        
+        foreach ($vars as $var) {
+          if (strpos($var, 'TS') === 0) {
+            $tsVars[] = $var;
+          } else {
+            $otherVars[] = $var;
+          }
+        }
+        
+        // Add TS variables group if any exist
+        if (!empty($tsVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Sea Temperature',
+            'prefix' => 'q_ts',
+            'vars' => $tsVars
+          ));
+        }
+        
+        // Add other 'q' variables group if any exist
+        if (!empty($otherVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Salinity & Conductivity',
+            'prefix' => 'q_other',
+            'vars' => $otherVars
+          ));
+        }
+      } else {
+        array_push($jsGroups, array(
+          'name' => $groupName,
+          'prefix' => $prefix,
+          'vars' => $vars
+        ));
+      }
     }
     
     echo json_encode($jsGroups);

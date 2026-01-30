@@ -24,9 +24,11 @@ function RenderZoomModal()
         padding:0;
         border-radius:12px;
         box-shadow:0 8px 32px rgba(0,0,0,0.4);
-        max-width:95%;
-        max-height:95%;
-        overflow:auto;
+        width:90vw;
+        height:90vh;
+        overflow:hidden;
+        display:flex;
+        flex-direction:column;
     \">
         <div style=\"
             display:flex;
@@ -36,6 +38,7 @@ function RenderZoomModal()
             background:#f8f9fa;
             border-bottom:2px solid #dee2e6;
             border-radius:12px 12px 0 0;
+            flex-shrink:0;
         \">
             <h2 style=\"margin:0; font-size:24px; font-weight:bold; color:#2c3e50;\">Zoom & Pan View</h2>
             <div style=\"display:flex; gap:10px;\">
@@ -45,10 +48,10 @@ function RenderZoomModal()
                 <button onclick=\"closeZoomModal()\" style=\"padding:10px 20px; font-size:14px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold;\">Close</button>
             </div>
         </div>
-        <div style=\"padding:20px;\">
-            <div id=\"zoomChartContainer\" style=\"width:1300px; height:800px; margin:0 auto; border:1px solid #ccc;\"></div>
+        <div style=\"padding:20px; flex:1; overflow:hidden; display:flex; flex-direction:column;\">
+            <div id=\"zoomChartContainer\" style=\"flex:1; margin:0 auto; border:1px solid #ccc; width:100%; min-height:0;\"></div>
         </div>
-        <div style=\"text-align:center; color:#666; font-size:14px; padding-bottom:15px;\">
+        <div style=\"text-align:center; color:#666; font-size:14px; padding:0 20px 15px 20px; flex-shrink:0;\">
             Use mouse wheel to zoom | Click + drag to pan | Click \"Reset Zoom\" to return to full view
         </div>
     </div>
