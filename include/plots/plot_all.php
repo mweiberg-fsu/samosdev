@@ -87,7 +87,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
     // Fetch Z flags from database for all variables in this group
     $zFlagsByVar = array();
     foreach ($groupVars as $var) {
-      $zFlagsByVar[$var] = array();
+      $zFlagsByVar[$var] = ' ';
       
       if ($order > 100) {
         $zQuery = "SELECT kv.known_variable_id, mqcs.*, kv.variable_name 

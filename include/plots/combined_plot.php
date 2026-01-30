@@ -505,7 +505,7 @@ FORM;
   // Fetch Z flags from database for all selected variables
   $zFlagsByVar = array();
   foreach ($selectedVars as $var) {
-    $zFlagsByVar[$var] = array();
+    $zFlagsByVar[$var] = ' ';
     
     if ($order > 100) {
       $zQuery = "SELECT kv.known_variable_id, mqcs.*, kv.variable_name 
