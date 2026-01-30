@@ -26,12 +26,6 @@
         return tooltip;
     }
 
-    // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
-    function fixEncoding(str) {
-        if (!str) return str;
-        return str.replace(/Â°/g, '°').replace(/Â/g, '');
-    }
-
     global.renderCombinedPlot = function (payload, chartId) {
 
         console.log('Full payload:', payload);
@@ -69,7 +63,7 @@
         const legendItems = [];
         vars.forEach(v => {
             const longName = longNames[v] || v;
-            const unitPart = unitsMap[v] ? ` (${fixEncoding(unitsMap[v]).split(' (')[0]})` : '';
+            const unitPart = unitsMap[v] ? ` (${unitsMap[v].split(' (')[0]})` : '';
             const displayName = longName + unitPart;
             const textWidth = measureTextWidth(displayName);
             const itemWidth = 18 + textWidth;
@@ -327,7 +321,7 @@
                         if (d === 90) return 'E';
                         if (d === 180) return 'S';
                         if (d === 270) return 'W';
-                        return d + '°';
+                        return d + '\u00B0';
                     });
             }
 
@@ -412,7 +406,7 @@
                     const timeStr = formatTime(parseTime(d.date));
                     const isWindDirectionVar = windDirectionVars.includes(v);
                     const valueStr = Number(d.value).toFixed(isWindDirectionVar ? 0 : 2);
-                    const unitLabel = fixEncoding(unitsMap[v] || '');
+                    const unitLabel = unitsMap[v] || '';
                     const displayValue = unitLabel ? `${valueStr} ${unitLabel.split(' (')[0]}` : valueStr; // strips long desc if needed
 
                     // Tooltip flag bar variables
@@ -590,7 +584,7 @@
         let csv = 'Timestamp';
         vars.forEach(v => {
             const longName = longNames[v] || v;
-            const unit = fixEncoding(unitsMap[v] || '');
+            const unit = unitsMap[v] || '';
             csv += ',' + longName;
             if (unit) csv += ' (' + unit.split(' (')[0] + ')';
             csv += ',Flag';

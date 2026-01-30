@@ -339,7 +339,7 @@
                         if (d === 90) return 'E';
                         if (d === 180) return 'S';
                         if (d === 270) return 'W';
-                        return d + '°';
+                        return d + '\u00B0';
                     });
             }
 
@@ -437,7 +437,8 @@
             .style('background', 'white')
             .style('border', '2px solid #333')
             .style('border-radius', '8px')
-            .style('padding', '12px')
+            .style('padding', '0')
+            .style('overflow', 'hidden')
             .style('box-shadow', '0 6px 16px rgba(0,0,0,0.3)')
             .style('pointer-events', 'none')
             .style('opacity', 0)
