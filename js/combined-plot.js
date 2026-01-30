@@ -419,14 +419,14 @@
                     const textColor = flag === 'I' ? '#000' : '#FFF';
 
                     tip.html(`
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 180px; padding: 0; margin: 0;">
-                            <div style="display: flex; align-items: center; gap: 10px; padding: 0 12px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 180px; padding: 0; margin: 0; overflow: hidden; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 12px 0 12px;">
                                 <div style="width: 18px; height: 18px; background: ${color(v)}; border: 1px solid #000; border-radius: 4px;"></div>
                                 <strong style="font-size: 15px; color: #222;">${v}</strong>
                             </div>
                             <div style="font-size: 14px; color: #444; padding: 0 12px;">${timeStr}</div>
-                            <div style="font-weight: bold; font-size: 16px; color: #000; padding: 0 12px; margin-bottom: 8px;">${displayValue}</div>
-                            <div style="height: 50px; width: 100%; background: ${bg}; display: flex; align-items: center; justify-content: center; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222; box-sizing: border-box; padding: 0 12px;">
+                            <div style="font-weight: bold; font-size: 16px; color: #000; padding: 0 12px 12px 12px;">${displayValue}</div>
+                            <div style="height: 50px; width: calc(100% + 24px); margin: 0 -12px -12px -12px; background: ${bg}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222;">
                                 FLAG: ${flag}
                             </div>
                         </div>
