@@ -106,6 +106,7 @@
         // Process data + preserve flags
         const allValidPoints = [];
         const processedData = {};
+        const varsWithZFlags = [];
 
         vars.forEach(v => {
             processedData[v] = (data[v]?.points || [])
@@ -116,14 +117,20 @@
                 }))
                 .filter(p => p.value != null && !isNaN(p.value));
 
-            // DEBUG: Log all flags for this variable
-            const flags = processedData[v].map(p => p.flag).filter(f => f && f.trim() !== ' ');
-            if (flags.length > 0) {
-                console.log(`${v} flags:`, flags);
+            // DEBUG: Check if this variable has any Z flags
+            const hasZFlag = processedData[v].some(p => p.flag === 'Z');
+            if (hasZFlag) {
+                varsWithZFlags.push(v);
             }
 
             allValidPoints.push(...processedData[v]);
         });
+        
+        if (varsWithZFlags.length > 0) {
+            console.log('Variables with Z flags:', varsWithZFlags);
+        } else {
+            console.log('No Z flags found');
+        }
 
         if (allValidPoints.length === 0) return;
 
