@@ -309,6 +309,37 @@ FORM;
             'vars' => $otherVars
           ));
         }
+      }
+      // Special handling for 'd' flag: split PL_CRS variables from other d variables
+      elseif ($prefix === 'd') {
+        $plCrsVars = array();
+        $otherDVars = array();
+
+        foreach ($vars as $var) {
+          if (strpos($var, 'PL_CRS') === 0) {
+            $plCrsVars[] = $var;
+          } else {
+            $otherDVars[] = $var;
+          }
+        }
+
+        // Add PL_CRS variables group if any exist
+        if (!empty($plCrsVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Platform Course',
+            'prefix' => 'd_plcrs',
+            'vars' => $plCrsVars
+          ));
+        }
+
+        // Add other 'd' variables group if any exist
+        if (!empty($otherDVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Earth Relative Wind Course',
+            'prefix' => 'd_other',
+            'vars' => $otherDVars
+          ));
+        }
       } else {
         array_push($jsGroups, array(
           'name' => $groupName,
