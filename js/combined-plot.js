@@ -26,6 +26,12 @@
         return tooltip;
     }
 
+    // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
+    function fixEncoding(str) {
+        if (!str) return str;
+        return str.replace(/Â°/g, '°').replace(/Â/g, '');
+    }
+
     global.renderCombinedPlot = function (payload, chartId) {
 
         console.log('Full payload:', payload);
@@ -63,7 +69,7 @@
         const legendItems = [];
         vars.forEach(v => {
             const longName = longNames[v] || v;
-            const unitPart = unitsMap[v] ? ` (${unitsMap[v].split(' (')[0]})` : '';
+            const unitPart = unitsMap[v] ? ` (${fixEncoding(unitsMap[v]).split(' (')[0]})` : '';
             const displayName = longName + unitPart;
             const textWidth = measureTextWidth(displayName);
             const itemWidth = 18 + textWidth;
@@ -406,7 +412,7 @@
                     const timeStr = formatTime(parseTime(d.date));
                     const isWindDirectionVar = windDirectionVars.includes(v);
                     const valueStr = Number(d.value).toFixed(isWindDirectionVar ? 0 : 2);
-                    const unitLabel = unitsMap[v] || '';
+                    const unitLabel = fixEncoding(unitsMap[v] || '');
                     const displayValue = unitLabel ? `${valueStr} ${unitLabel.split(' (')[0]}` : valueStr; // strips long desc if needed
 
                     // Tooltip flag bar variables
@@ -584,7 +590,7 @@
         let csv = 'Timestamp';
         vars.forEach(v => {
             const longName = longNames[v] || v;
-            const unit = unitsMap[v] || '';
+            const unit = fixEncoding(unitsMap[v] || '');
             csv += ',' + longName;
             if (unit) csv += ' (' + unit.split(' (')[0] + ')';
             csv += ',Flag';

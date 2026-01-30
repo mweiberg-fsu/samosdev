@@ -2,6 +2,12 @@
 (function (global) {
     'use strict';
 
+    // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
+    function fixEncoding(str) {
+        if (!str) return str;
+        return str.replace(/Â°/g, '°').replace(/Â/g, '');
+    }
+
     global.openZoomModal = function () {
         const modal = document.getElementById('zoomModal');
         const container = document.getElementById('zoomChartContainer');
@@ -41,7 +47,7 @@
         const legendItems = [];
         vars.forEach(v => {
             const longName = longNames[v] || v;
-            const unitPart = unitsMap[v] ? ` (${unitsMap[v].split(' (')[0]})` : '';
+            const unitPart = unitsMap[v] ? ` (${fixEncoding(unitsMap[v]).split(' (')[0]})` : '';
             const displayName = longName + unitPart;
             const textWidth = measureTextWidth(displayName);
             const itemWidth = 18 + textWidth; // box(12) + gap(6) + text
@@ -459,30 +465,32 @@
                 const timeStr = formatTime(parseTime(d.date));
                 const isWindDir = windDirectionVars.includes(v);
                 const valueStr = Number(d.value).toFixed(isWindDir ? 0 : 2);
-                const unitLabel = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
+                const unitLabel = unitsMap[v] ? fixEncoding(unitsMap[v]).split(' (')[0] : '';
                 const displayValue = unitLabel ? `${valueStr} ${unitLabel}` : valueStr;
 
+                // Tooltip flag bar variables
+                const flag = d.flag && d.flag.trim() !== '' && d.flag.trim() !== ' ' ? d.flag.trim() : 'Z';
+                const colors = {
+                    'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
+                    'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
+                    'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#444444'
+                };
+                const bg = colors[flag] || '#444444';
+                const textColor = flag === 'I' ? '#000' : '#FFF';
+
                 hoverTooltip.html(`
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 18px; height: 18px; background: ${color(v)}; border: 1px solid #000; border-radius: 4px;"></div>
-                            <strong style="font-size: 15px; color: #222;">${v}</strong>
+                    <div style="display: flex; flex-direction: column; align-items: stretch; min-width: 180px; padding: 0; margin: 0;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 12px 0 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 18px; height: 18px; background: ${color(v)}; border: 1px solid #000; border-radius: 4px;"></div>
+                                <strong style="font-size: 15px; color: #222;">${v}</strong>
+                            </div>
+                            <div style="font-size: 14px; color: #444;">${timeStr}</div>
+                            <div style="font-weight: bold; font-size: 16px; color: #000; padding-bottom: 12px;">${displayValue}</div>
                         </div>
-                        <div style="font-size: 14px; color: #444;">${timeStr}</div>
-                        <div style="font-weight: bold; font-size: 16px; color: #000;">${displayValue}</div>
-                        ${d.flag && d.flag.trim() !== ' ' && d.flag.trim() !== '' ? (() => {
-                            const flag = d.flag.trim();
-                            const colors = {
-                                'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
-                                'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
-                                'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#000000'
-                            };
-                            const bg = colors[flag] || '#888888';
-                            const textColor = ['I', 'Z'].includes(flag) ? '#000' : '#FFF';
-                            return `<div style="margin-top: 10px; padding: 6px 12px; background: ${bg}; color: ${textColor}; border-radius: 8px; font-weight: bold; font-size: 13px; letter-spacing: 1px; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                                    FLAG: ${flag}
-                                </div>`;
-                        })() : ''}
+                        <div style="height: 35px; width: 100%; background: ${bg}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222; flex-shrink: 0;">
+                            FLAG: ${flag}
+                        </div>
                     </div>
                 `)
                 .style('left', (event.pageX + 18) + 'px')
