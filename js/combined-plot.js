@@ -408,27 +408,27 @@
                     const unitLabel = unitsMap[v] || '';
                     const displayValue = unitLabel ? `${valueStr} ${unitLabel.split(' (')[0]}` : valueStr; // strips long desc if needed
 
+                    // Tooltip flag bar variables
+                    const flag = d.flag && d.flag.trim() !== '' && d.flag.trim() !== ' ' ? d.flag.trim() : 'Z';
+                    const colors = {
+                        'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
+                        'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
+                        'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#444444'
+                    };
+                    const bg = colors[flag] || '#444444';
+                    const textColor = ['I', 'Z'].includes(flag) ? '#000' : '#FFF';
+
                     tip.html(`
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 180px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="width: 18px; height: 18px; background: ${color(v)}; border: 1px solid #000; border-radius: 4px;"></div>
                                 <strong style="font-size: 15px; color: #222;">${v}</strong>
                             </div>
                             <div style="font-size: 14px; color: #444;">${timeStr}</div>
                             <div style="font-weight: bold; font-size: 16px; color: #000;">${displayValue}</div>
-                            ${d.flag && d.flag.trim() !== ' ' && d.flag.trim() !== '' ? (() => {
-                            const flag = d.flag.trim();
-                            const colors = {
-                                'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
-                                'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
-                                'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#000000'
-                            };
-                            const bg = colors[flag] || '#888888';
-                            const textColor = ['I', 'Z'].includes(flag) ? '#000' : '#FFF';
-                            return `<div style="margin-top: 10px; padding: 6px 12px; background: ${bg}; color: ${textColor}; border-radius: 8px; font-weight: bold; font-size: 13px; letter-spacing: 1px; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                                    FLAG: ${flag}
-                                </div>`;
-                        })() : ''}
+                            <div style="height: 50px; width: 100%; margin-top: 12px; background: ${bg}; display: flex; align-items: center; justify-content: center; border-radius: 0 0 12px 12px; font-weight: bold; font-size: 17px; color: ${textColor}; letter-spacing: 1px; border-top: 2px solid #222;">
+                                FLAG: ${flag}
+                            </div>
                         </div>
                     `)
                         .style('left', (event.pageX + 18) + 'px')
