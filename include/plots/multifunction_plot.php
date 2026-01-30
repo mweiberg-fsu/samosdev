@@ -256,7 +256,38 @@ FORM;
                    INNER JOIN known_variable kv ON mqcs.known_variable_id=kv.variable_id 
                    WHERE merged_file_history_id=$file_history_id 
                    ORDER BY kv.order_value";
-  } else {
+       }
+       // Special handling for 'd' flag: split PL_CRS variables from other d variables
+       elseif ($prefix === 'd') {
+         $plCrsVars = array();
+         $otherDVars = array();
+         
+         foreach ($vars as $var) {
+           if (strpos($var, 'PL_CRS') === 0) {
+             $plCrsVars[] = $var;
+           } else {
+             $otherDVars[] = $var;
+           }
+         }
+         
+         // Add PL_CRS variables group if any exist
+         if (!empty($plCrsVars)) {
+           array_push($jsGroups, array(
+             'name' => 'Platform Course',
+             'prefix' => 'd_plcrs',
+             'vars' => $plCrsVars
+           ));
+         }
+         
+         // Add other 'd' variables group if any exist
+         if (!empty($otherDVars)) {
+           array_push($jsGroups, array(
+             'name' => 'Earth Relative Wind Course',
+             'prefix' => 'd_other',
+             'vars' => $otherDVars
+           ));
+         }
+       } else {
     $groupQuery = "SELECT DISTINCT kv.variable_name, kv.order_value 
                    FROM qc_summary qcs 
                    INNER JOIN known_variable kv ON qcs.known_variable_id=kv.variable_id 
