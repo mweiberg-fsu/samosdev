@@ -182,10 +182,8 @@ if (isset($variables["$var"])) {
         } elseif ($d == -9999) {
             $chart['chart_value_text'][1][] = '#';
             $flags_arr[$j] = '#';
-        } elseif (isset($flags["$var"][$t]) && $flags["$var"][$t] == 'Z') {
-            $chart['chart_value_text'][1][] = '';
-            $flags_arr[$j] = ' ';
         } else {
+            // Include all A-Z flags, including Z flags, in the output
             $chart['chart_value_text'][1][] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
             $flags_arr[$j] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
         }

@@ -163,9 +163,16 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
       $varIdQuery = "SELECT long_name FROM known_variable WHERE variable_name = '$var'";
       db_query($varIdQuery);
       if ($varRow = db_get_row()) {
-        $longNames[$var] = $varRow->long_name;
+        // Use the database long_name, but fallback to GetVariableTitle for better formatting
+        $longName = $varRow->long_name;
+        // If the long_name looks like a generic group name (e.g., "P3 Group", "T2 Group")
+        // or contains a digit followed by "Group", use GetVariableTitle instead
+        if (preg_match('/\d\s+Group$|^(\w+)\d\s*Group$/i', $longName)) {
+          $longName = GetVariableTitle($var);
+        }
+        $longNames[$var] = $longName;
       } else {
-        $longNames[$var] = $var;
+        $longNames[$var] = GetVariableTitle($var);
       }
     }
     
