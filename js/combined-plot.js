@@ -337,7 +337,10 @@
                 .style('fill', axisColor)
                 .style('font-size', '15px');
 
-            // Y-axis label
+            // Y-axis label - use longName from the first variable in this unit group
+            const firstVarInGroup = varsInGroup[0];
+            const axisLabel = longNames[firstVarInGroup] || unit;
+            
             svg.append('text')
                 .attr('transform', 'rotate(-90)')
                 .attr('y', labelOffset)
@@ -348,7 +351,7 @@
                 .style('font-size', '15px')
                 .style('font-weight', 'bold')
                 .style('fill', axisColor)
-                .text(unit);
+                .text(axisLabel);
         });
 
         // X-Axis

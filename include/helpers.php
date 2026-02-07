@@ -101,10 +101,13 @@ function GetVariableTitle($varName)
     'WDIR_R' => 'Platform Relative Wind Direction',
     
     'WSPD_R' => 'Platform Relative Wind Speed',
-    'PL_WSPD' => 'Platform Relative Wind Speed',
     
     'WDIR_E' => 'Earth Relative Wind Direction',
     'WSPD_E' => 'Earth Relative Wind Speed',
+    
+    'PL_WSPD' => 'Platform Relative Wind Speed',
+    'WSPD' => 'Earth Relative Wind Speed',
+    'SPD' => 'Earth Relative Wind Speed',
   );
   
   // Check exact match first
