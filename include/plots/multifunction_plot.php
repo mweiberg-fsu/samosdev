@@ -335,8 +335,10 @@ FORM;
         $groupName = 'Earth Relative Wind Speed';
       } elseif (preg_grep('/^WSPD_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Speed';
-      } elseif (preg_grep('/^WSPD/i', $vars) || in_array('SPD', $vars)) {
+      } elseif (preg_grep('/^WSPD/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
+      } elseif (in_array('SPD', $vars)) {
+        $groupName = 'Platform Relative Wind Speed';
       } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
         $groupName = 'Air Temperature';
       } elseif (in_array('TS', $vars) || in_array('SST', $vars)) {
