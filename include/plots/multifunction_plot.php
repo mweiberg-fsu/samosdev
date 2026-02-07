@@ -319,12 +319,20 @@ FORM;
       // Better group names
       if (in_array('LAT', $vars) || in_array('lat', $vars)) {
         $groupName = 'Position (Lat/Lon)';
-      } elseif (in_array('PL_HD', $vars) || in_array('PL_CRS', $vars)) {
-        $groupName = 'Heading & Course';
-      } elseif (in_array('PL_WDIR', $vars)) {
-        $groupName = 'Wind Direction';
-      } elseif (in_array('PL_WSPD', $vars)) {
-        $groupName = 'Wind Speed';
+      } elseif (preg_grep('/^PL_HD/i', $vars)) {
+        $groupName = 'Platform Heading';
+      } elseif (preg_grep('/^PL_CRS/i', $vars)) {
+        $groupName = 'Platform Course';
+      } elseif (in_array('PL_WDIR', $vars) || preg_grep('/^WDIR_R/i', $vars)) {
+        $groupName = 'Platform Relative Wind Direction';
+      } elseif (preg_grep('/^WDIR_E|WDIR\d/i', $vars)) {
+        $groupName = 'Earth Relative Wind Direction';
+      } elseif (preg_grep('/^PL_WSPD/i', $vars)) {
+        $groupName = 'Earth Relative Wind Speed';
+      } elseif (preg_grep('/^WSPD_E/i', $vars)) {
+        $groupName = 'Earth Relative Wind Speed';
+      } elseif (preg_grep('/^WSPD_R/i', $vars)) {
+        $groupName = 'Platform Relative Wind Speed';
       } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
         $groupName = 'Air Temperature';
       } elseif (in_array('TS', $vars) || in_array('SST', $vars)) {
