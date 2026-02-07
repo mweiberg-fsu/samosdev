@@ -254,8 +254,9 @@ FORM;
     $jsGroups = array();
     foreach ($varsByOrder as $prefix => $vars) {
       $firstVar = reset($vars);
-      // Use GetVariableTitle to get proper display names
-      $groupName = !empty($firstVar) ? GetVariableTitle($firstVar) : 'Group ' . $prefix;
+      // Don't use GetVariableTitle as initial since it may add ' Group' suffix
+      // Instead, use pattern-based logic first, then fall back to GetVariableTitle
+      $groupName = '';
       
       // Try to create better names based on common patterns
       if (in_array('LAT', $vars) || in_array('lat', $vars)) {
@@ -272,7 +273,7 @@ FORM;
         $groupName = 'Platform Course';
       } elseif (in_array('PL_WDIR', $vars) || preg_grep('/^WDIR_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Direction';
-      } elseif (preg_grep('/^WDIR_E|WDIR\d/i', $vars)) {
+      } elseif (preg_grep('/^WDIR_E/i', $vars) || preg_grep('/^WDIR\d/i', $vars) || preg_grep('/^WDIR$/i', $vars)) {
         $groupName = 'Earth Relative Wind Direction';
       } elseif (preg_grep('/^PL_WSPD/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
@@ -280,6 +281,34 @@ FORM;
         $groupName = 'Earth Relative Wind Speed';
       } elseif (preg_grep('/^WSPD_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Speed';
+      } elseif (preg_grep('/^WSPD/i', $vars) || in_array('SPD', $vars)) {
+        $groupName = 'Earth Relative Wind Speed';
+      } elseif (in_array('T', $vars) || in_array('TA', $vars) || preg_grep('/^T\d/i', $vars)) {
+        $groupName = 'Air Temperature';
+      } elseif (in_array('TS', $vars) || in_array('SST', $vars) || preg_grep('/^TS\d/i', $vars)) {
+        $groupName = 'Sea Temperature';
+      } elseif (in_array('TD', $vars) || preg_grep('/^TD\d/i', $vars)) {
+        $groupName = 'Dew Point';
+      } elseif (in_array('P', $vars) || in_array('PA', $vars) || preg_grep('/^P\d/i', $vars)) {
+        $groupName = 'Pressure';
+      } elseif (in_array('RH', $vars) || preg_grep('/^RH\d/i', $vars)) {
+        $groupName = 'Relative Humidity';
+      } elseif (preg_grep('/^E\d|^E$/i', $vars)) {
+        $groupName = 'Vapor Pressure';
+      } elseif (preg_grep('/^PRECIP/i', $vars)) {
+        $groupName = 'Precipitation Accumulation';
+      } elseif (preg_grep('/^PL_SOW/i', $vars)) {
+        $groupName = 'Platform Speed Over Water';
+      } elseif (in_array('PL_SPD', $vars) || preg_grep('/^PL_SPD/i', $vars)) {
+        $groupName = 'Platform Speed Over Ground';
+      } elseif (in_array('RAD', $vars) || in_array('SW', $vars)) {
+        $groupName = 'Radiation';
+      }
+      
+      // If no pattern matched, use GetVariableTitle as fallback
+      if (empty($groupName)) {
+        $groupName = !empty($firstVar) ? GetVariableTitle($firstVar) : 'Group ' . $prefix;
+      }
       } elseif (in_array('T', $vars) || in_array('TA', $vars) || preg_grep('/^T\d/i', $vars)) {
         $groupName = 'Air Temperature';
       } elseif (in_array('TS', $vars) || in_array('SST', $vars) || preg_grep('/^TS\d/i', $vars)) {

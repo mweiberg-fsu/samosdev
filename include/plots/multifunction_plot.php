@@ -314,9 +314,11 @@ FORM;
     $jsGroups = array();
     foreach ($varsByOrder as $prefix => $vars) {
       $firstVar = reset($vars);
-      $groupName = !empty($firstVar) ? ucfirst(strtolower($firstVar)) . ' Group' : 'Group ' . $prefix;
+      // Don't use GetVariableTitle as initial since it may add ' Group' suffix
+      // Instead, use pattern-based logic first, then fall back
+      $groupName = '';
       
-      // Better group names
+      // Better group names based on patterns
       if (in_array('LAT', $vars) || in_array('lat', $vars)) {
         $groupName = 'Position (Lat/Lon)';
       } elseif (preg_grep('/^PL_HD/i', $vars)) {
@@ -325,7 +327,7 @@ FORM;
         $groupName = 'Platform Course';
       } elseif (in_array('PL_WDIR', $vars) || preg_grep('/^WDIR_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Direction';
-      } elseif (preg_grep('/^WDIR_E|WDIR\d/i', $vars)) {
+      } elseif (preg_grep('/^WDIR_E/i', $vars) || preg_grep('/^WDIR\d/i', $vars) || preg_grep('/^WDIR$/i', $vars)) {
         $groupName = 'Earth Relative Wind Direction';
       } elseif (preg_grep('/^PL_WSPD/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
@@ -333,6 +335,8 @@ FORM;
         $groupName = 'Earth Relative Wind Speed';
       } elseif (preg_grep('/^WSPD_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Speed';
+      } elseif (preg_grep('/^WSPD/i', $vars) || in_array('SPD', $vars)) {
+        $groupName = 'Earth Relative Wind Speed';
       } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
         $groupName = 'Air Temperature';
       } elseif (in_array('TS', $vars) || in_array('SST', $vars)) {
@@ -345,6 +349,11 @@ FORM;
         $groupName = 'Radiation';
       } elseif (in_array('PL_SPD', $vars) || in_array('SOG', $vars)) {
         $groupName = 'Speed';
+      }
+      
+      // If no pattern matched, use fallback
+      if (empty($groupName)) {
+        $groupName = !empty($firstVar) ? GetVariableTitle($firstVar) : 'Group ' . $prefix;
       }
       
       // Special handling for 'q' flag: split TS variables from other q variables
