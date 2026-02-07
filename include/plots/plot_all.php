@@ -183,12 +183,13 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
     echo "<div id=\"$chartId\" style=\"width:790px; height:520px; margin:10px auto; border:1px solid #ccc; position:relative;\"></div>";
     
     // Buttons for this plot
-        echo "<div style=\"text-align:center; margin:15px;\">
-          <button onclick=\"downloadCombinedPlot('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download PNG</button>
-          <button onclick=\"downloadCombinedCSV('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download CSV</button>
-          <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Zoom & Pan</button>
-          <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Ship Track</button>
-          </div>";
+            echo "<div style=\"text-align:center; margin:15px;\">
+              <button onclick=\"downloadCombinedPlot('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download PNG</button>
+              <button onclick=\"downloadCombinedCSV('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download CSV</button>
+              <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Zoom & Pan</button>
+              <button onclick=\"openPolarModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#16a085; border:2px solid #16a085; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#16a085'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#16a085';\">Polar Plot</button>
+              <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Ship Track</button>
+              </div>";
     
     $jsPayload = json_encode(array(
       'plotData' => $plotData,
@@ -221,6 +222,13 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
           openZoomModal();
         }
       }
+
+      function openPolarModal_$plotIndex() {
+        window.__originalPolarData = window.__chartPayloads['$chartId'];
+        if (typeof openPolarModal === 'function') {
+          openPolarModal();
+        }
+      }
     </script>";
     
     $plotIndex++;
@@ -234,6 +242,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
   echo "<script src=\"https://d3js.org/d3.v6.min.js\"></script>";
   echo "<script src=\"js/combined-plot.js\"></script>";
   echo "<script src=\"js/zoom-pan.js\"></script>";
+  echo "<script src=\"js/polar-plot.js\"></script>";
   echo '<script src="js/ship-track.js"></script>';
   echo '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />';
   echo '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>';
@@ -241,6 +250,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
   // Include modals
   include 'modals.php';
   RenderZoomModal();
+  RenderPolarModal();
   RenderShipTrackModal();
   RenderModalFunctions();
 }
