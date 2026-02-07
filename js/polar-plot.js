@@ -269,9 +269,9 @@
             .text((d) => timeFormat(d));
 
         const lineRadial = d3.lineRadial()
-            .angle((d) => angleScale(d.value) - Math.PI / 2)
+            .angle((d) => (d.value / 360) * Math.PI * 2 - Math.PI / 2)
             .radius((d) => rScale(parseTime(d.date)))
-            .curve(d3.curveCardinal.tension(0.3))
+            .curve(d3.curveLinear)
             .defined((d) => d.value != null);
 
         const hoverFormat = d3.timeFormat('%Y-%m-%d %H:%M');
@@ -317,9 +317,10 @@
                 .attr('d', lineRadial);
 
             const lastPoint = unwrappedPoints[unwrappedPoints.length - 1];
+            const lastAngleRad = (lastPoint.value / 360) * Math.PI * 2 - Math.PI / 2;
             plot.append('circle')
-                .attr('cx', Math.cos(angleScale(lastPoint.value) - Math.PI / 2) * rScale(lastPoint.time))
-                .attr('cy', Math.sin(angleScale(lastPoint.value) - Math.PI / 2) * rScale(lastPoint.time))
+                .attr('cx', Math.cos(lastAngleRad) * rScale(lastPoint.time))
+                .attr('cy', Math.sin(lastAngleRad) * rScale(lastPoint.time))
                 .attr('r', 4.5)
                 .attr('fill', color(v))
                 .attr('stroke', '#ffffff')
