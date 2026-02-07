@@ -7,6 +7,33 @@
 function RenderZoomModal()
 {
   echo "
+<style>
+  #zoomModal {
+    --modal-width: 90vw;
+    --modal-height: 90vh;
+    --modal-max-width: calc(100vw - 32px);
+    --modal-max-height: calc(100vh - 32px);
+  }
+  
+  /* iPad and tablets in portrait */
+  @media (max-width: 768px) {
+    #zoomModal {
+      --modal-width: 95vw;
+      --modal-height: 95vh;
+      --modal-max-width: calc(100vw - 16px);
+      --modal-max-height: calc(100vh - 16px);
+    }
+  }
+  
+  /* Large screens */
+  @media (min-width: 1920px) {
+    #zoomModal {
+      --modal-width: 85vw;
+      --modal-height: 85vh;
+    }
+  }
+</style>
+
 <div id=\"zoomModal\" style=\"
     display:none;
     position:fixed;
@@ -26,10 +53,10 @@ function RenderZoomModal()
         padding:0;
         border-radius:12px;
         box-shadow:0 8px 32px rgba(0,0,0,0.4);
-        width:90vw;
-        height:90vh;
-        max-width:calc(100vw - 32px);
-        max-height:calc(100vh - 32px);
+        width:var(--modal-width);
+        height:var(--modal-height);
+        max-width:var(--modal-max-width);
+        max-height:var(--modal-max-height);
         overflow:hidden;
         display:flex;
         flex-direction:column;
@@ -45,20 +72,49 @@ function RenderZoomModal()
             border-radius:12px 12px 0 0;
             flex-shrink:0;
             box-sizing:border-box;
+            gap:10px;
+            flex-wrap:wrap;
         \">
-            <h2 style=\"margin:0; font-size:24px; font-weight:bold; color:#2c3e50;\">Zoom & Pan View</h2>
-            <div style=\"display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;\">
-                <button onclick=\"downloadZoomCSV()\" style=\"padding:10px 20px; font-size:14px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap;\">Download CSV</button>
-                <button onclick=\"downloadZoomPlot()\" style=\"padding:10px 20px; font-size:14px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap;\">Download PNG</button>
-                <button id=\"resetZoomBtn\" style=\"padding:10px 20px; font-size:14px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap;\">Reset Zoom</button>
-                <button onclick=\"closeZoomModal()\" style=\"padding:10px 20px; font-size:14px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap;\">Close</button>
+            <h2 style=\"margin:0; font-size:24px; font-weight:bold; color:#2c3e50; flex:1; min-width:200px;\">Zoom & Pan View</h2>
+            <div style=\"display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center;\">
+                <button onclick=\"downloadZoomCSV()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">CSV</button>
+                <button onclick=\"downloadZoomPlot()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">PNG</button>
+                <button id=\"resetZoomBtn\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Reset</button>
+                <button onclick=\"closeZoomModal()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Close</button>
             </div>
         </div>
-        <div style=\"flex:1; overflow:hidden; display:flex; flex-direction:column; box-sizing:border-box; min-height:0;\">
-            <div id=\"zoomChartContainer\" style=\"flex:1; margin:0 auto; border:1px solid #ccc; width:100%; min-height:0; box-sizing:border-box;\"></div>
+        <div style=\"
+            flex:1;
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            box-sizing:border-box;
+            min-height:0;
+            padding:0;
+        \">
+            <div id=\"zoomChartContainer\" style=\"
+                flex:1;
+                width:100%;
+                height:100%;
+                border:1px solid #ccc;
+                box-sizing:border-box;
+                overflow:hidden;
+            \"></div>
         </div>
-        <div style=\"text-align:center; color:#666; font-size:14px; padding:15px 20px; flex-shrink:0; background:#f8f9fa; border-top:1px solid #dee2e6; box-sizing:border-box; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;\">
-            Use mouse wheel to zoom | Click + drag to pan | Click \"Reset Zoom\" to return to full view
+        <div style=\"
+            text-align:center;
+            color:#666;
+            font-size:12px;
+            padding:10px 15px;
+            flex-shrink:0;
+            background:#f8f9fa;
+            border-top:1px solid #dee2e6;
+            box-sizing:border-box;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        \">
+            Zoom: mouse wheel | Pan: click+drag | Reset: button
         </div>
     </div>
 </div>";
@@ -67,6 +123,33 @@ function RenderZoomModal()
 function RenderShipTrackModal()
 {
   echo <<<HTML
+<style>
+  #shipTrackModal {
+    --modal-width: 95vw;
+    --modal-height: 95vh;
+    --modal-max-width: calc(100vw - 32px);
+    --modal-max-height: calc(100vh - 32px);
+  }
+  
+  /* iPad and tablets in portrait */
+  @media (max-width: 768px) {
+    #shipTrackModal {
+      --modal-width: 98vw;
+      --modal-height: 98vh;
+      --modal-max-width: calc(100vw - 8px);
+      --modal-max-height: calc(100vh - 8px);
+    }
+  }
+  
+  /* Large screens */
+  @media (min-width: 1920px) {
+    #shipTrackModal {
+      --modal-width: 90vw;
+      --modal-height: 90vh;
+    }
+  }
+</style>
+
 <div id="shipTrackModal" style="
     display:none;
     position:fixed;
@@ -86,10 +169,10 @@ function RenderShipTrackModal()
         padding:0;
         border-radius:12px;
         box-shadow:0 8px 32px rgba(0,0,0,0.4);
-        width:95vw;
-        height:95vh;
-        max-width:calc(100vw - 32px);
-        max-height:calc(100vh - 32px);
+        width:var(--modal-width);
+        height:var(--modal-height);
+        max-width:var(--modal-max-width);
+        max-height:var(--modal-max-height);
         overflow:hidden;
         display:flex;
         flex-direction:column;
@@ -105,26 +188,40 @@ function RenderShipTrackModal()
             border-radius:12px 12px 0 0;
             flex-shrink:0;
             box-sizing:border-box;
+            gap:10px;
         ">
-            <h2 style="margin:0; font-size:24px; font-weight:bold; color:#2c3e50;">
-                Ship Track with Interactive Map
+            <h2 style="
+                margin:0;
+                font-size:24px;
+                font-weight:bold;
+                color:#2c3e50;
+                flex:1;
+                min-width:200px;
+                word-break:break-word;
+            ">
+                Ship Track Map
             </h2>
             <button onclick="closeShipTrackModal()" style="
                 background:#e74c3c;
                 color:white;
                 border:none;
-                width:40px; height:40px;
+                width:40px;
+                height:40px;
                 border-radius:5px;
-                font-size:18px;
+                font-size:20px;
                 cursor:pointer;
                 font-weight:bold;
                 flex-shrink:0;
+                display:flex;
+                align-items:center;
+                justify-content:center;
             ">×</button>
         </div>
         
         <div id="shipTrackContainer" style="
             flex:1;
             width:100%;
+            height:100%;
             min-height:0;
             border:1px solid #ccc;
             box-sizing:border-box;
