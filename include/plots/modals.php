@@ -66,7 +66,7 @@ function RenderZoomModal()
             display:flex;
             justify-content:space-between;
             align-items:center;
-            padding:15px 20px;
+            padding:12px 15px;
             background:#f8f9fa;
             border-bottom:2px solid #dee2e6;
             border-radius:12px 12px 0 0;
@@ -75,12 +75,12 @@ function RenderZoomModal()
             gap:10px;
             flex-wrap:wrap;
         \">
-            <h2 style=\"margin:0; font-size:24px; font-weight:bold; color:#2c3e50; flex:1; min-width:200px;\">Zoom & Pan View</h2>
-            <div style=\"display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center;\">
-                <button onclick=\"downloadZoomCSV()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">CSV</button>
-                <button onclick=\"downloadZoomPlot()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">PNG</button>
-                <button id=\"resetZoomBtn\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Reset</button>
-                <button onclick=\"closeZoomModal()\" style=\"padding:10px 15px; font-size:13px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Close</button>
+            <h2 style=\"margin:0; font-size:18px; font-weight:bold; color:#2c3e50; flex:1; min-width:150px;\">Zoom & Pan</h2>
+            <div style=\"display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;\">
+                <button onclick=\"downloadZoomCSV()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">CSV</button>
+                <button onclick=\"downloadZoomPlot()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#27ae60; color:white; border:none; border-radius:4px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">PNG</button>
+                <button id=\"resetZoomBtn\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:4px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Reset</button>
+                <button onclick=\"closeZoomModal()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:4px; font-weight:bold; white-space:nowrap; flex-shrink:0;\">Close</button>
             </div>
         </div>
         <div style=\"
@@ -182,7 +182,7 @@ function RenderShipTrackModal()
             display:flex;
             justify-content:space-between;
             align-items:center;
-            padding:15px 20px;
+            padding:12px 15px;
             background:#f8f9fa;
             border-bottom:2px solid #dee2e6;
             border-radius:12px 12px 0 0;
@@ -192,30 +192,27 @@ function RenderShipTrackModal()
         ">
             <h2 style="
                 margin:0;
-                font-size:24px;
+                font-size:18px;
                 font-weight:bold;
                 color:#2c3e50;
                 flex:1;
-                min-width:200px;
+                min-width:150px;
                 word-break:break-word;
             ">
-                Ship Track Map
+                Ship Track
             </h2>
             <button onclick="closeShipTrackModal()" style="
                 background:#e74c3c;
                 color:white;
                 border:none;
-                width:40px;
-                height:40px;
-                border-radius:5px;
-                font-size:20px;
+                padding:8px 12px;
+                border-radius:4px;
+                font-size:12px;
                 cursor:pointer;
                 font-weight:bold;
                 flex-shrink:0;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-            ">×</button>
+                white-space:nowrap;
+            ">Close</button>
         </div>
         
         <div id="shipTrackContainer" style="
