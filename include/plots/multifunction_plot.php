@@ -283,60 +283,10 @@ FORM;
     $jsGroups = array();
     foreach ($varsByOrder as $prefix => $vars) {
       $firstVar = reset($vars);
-      // Don't use GetVariableTitle as initial since it may add ' Group' suffix
-      // Instead, use pattern-based logic first, then fall back
-      $groupName = '';
       
-      // Helper function to check if any value in array matches a regex
-      $hasPatternInArray = function($pattern, $array) {
-        foreach ($array as $value) {
-          if (preg_match($pattern, $value)) {
-            return true;
-          }
-        }
-        return false;
-      };
-      
-      // Better group names based on patterns
-      // NOTE: Using custom hasPatternInArray function because preg_grep checks KEYS, not VALUES
-      if (in_array('LAT', $vars) || in_array('lat', $vars)) {
-        $groupName = 'Position (Lat/Lon)';
-      } elseif ($hasPatternInArray('/^PL_HD/i', $vars)) {
-        $groupName = 'Platform Heading';
-      } elseif ($hasPatternInArray('/^PL_CRS/i', $vars)) {
-        $groupName = 'Platform Course';
-      } elseif (in_array('PL_WDIR', $vars) || $hasPatternInArray('/^WDIR_R/i', $vars)) {
-        $groupName = 'Platform Relative Wind Direction';
-      } elseif ($hasPatternInArray('/^WDIR_E/i', $vars) || $hasPatternInArray('/^WDIR\\d/i', $vars) || $hasPatternInArray('/^WDIR$/i', $vars)) {
-        $groupName = 'Earth Relative Wind Direction';
-      } elseif ($hasPatternInArray('/^PL_WSPD/i', $vars)) {
-        $groupName = 'Platform Relative Wind Speed';
-      } elseif ($hasPatternInArray('/^WSPD_E/i', $vars)) {
-        $groupName = 'Earth Relative Wind Speed';
-      } elseif ($hasPatternInArray('/^WSPD_R/i', $vars)) {
-        $groupName = 'Platform Relative Wind Speed';
-      } elseif ($hasPatternInArray('/^SPD/i', $vars)) {
-        $groupName = 'Earth Relative Wind Speed';
-      } elseif ($hasPatternInArray('/^WSPD/i', $vars)) {
-        $groupName = 'Earth Relative Wind Speed';
-      } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
-        $groupName = 'Air Temperature';
-      } elseif (in_array('TS', $vars) || in_array('SST', $vars)) {
-        $groupName = 'Sea Temperature';
-      } elseif (in_array('P', $vars) || in_array('PA', $vars)) {
-        $groupName = 'Pressure';
-      } elseif (in_array('RH', $vars)) {
-        $groupName = 'Humidity';
-      } elseif (in_array('RAD', $vars) || in_array('SW', $vars)) {
-        $groupName = 'Radiation';
-      } elseif (in_array('PL_SPD', $vars) || in_array('SOG', $vars)) {
-        $groupName = 'Speed';
-      }
-      
-      // If no pattern matched, use fallback
-      if (empty($groupName)) {
-        $groupName = !empty($firstVar) ? GetVariableTitle($firstVar) : 'Group ' . $prefix;
-      }
+      // Simply use GetVariableTitle to determine the group name
+      // It already handles all exact matches and numbered variants (SPD1, SPD2, etc.)
+      $groupName = GetVariableTitle($firstVar);
       
       // Special handling for 'q' flag: split TS variables from other q variables
       if ($prefix === 'q') {
@@ -391,7 +341,7 @@ FORM;
         // Add PL_CRS variables group if any exist
         if (!empty($plCrsVars)) {
           array_push($jsGroups, array(
-            'name' => 'Platform Course',
+            'name' => GetVariableTitle($plCrsVars[0]),
             'prefix' => 'd_plcrs',
             'vars' => $plCrsVars
           ));
@@ -400,7 +350,7 @@ FORM;
         // Add SPD variables group if any exist
         if (!empty($spdVars)) {
           array_push($jsGroups, array(
-            'name' => 'Earth Relative Wind Speed',
+            'name' => GetVariableTitle($spdVars[0]),
             'prefix' => 'd_spd',
             'vars' => $spdVars
           ));
@@ -409,7 +359,7 @@ FORM;
         // Add wind direction variables group if any exist
         if (!empty($windDirVars)) {
           array_push($jsGroups, array(
-            'name' => 'Earth Relative Wind Direction',
+            'name' => GetVariableTitle($windDirVars[0]),
             'prefix' => 'd_wdir',
             'vars' => $windDirVars
           ));
@@ -418,7 +368,7 @@ FORM;
         // Add other 'd' variables group if any exist
         if (!empty($otherDVars)) {
           array_push($jsGroups, array(
-            'name' => 'Earth Relative Wind Course',
+            'name' => GetVariableTitle($otherDVars[0]),
             'prefix' => 'd_other',
             'vars' => $otherDVars
           ));
