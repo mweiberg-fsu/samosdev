@@ -330,7 +330,7 @@ FORM;
       } elseif (preg_grep('/^WDIR_E/i', $vars) || preg_grep('/^WDIR\d/i', $vars) || preg_grep('/^WDIR$/i', $vars)) {
         $groupName = 'Earth Relative Wind Direction';
       } elseif (preg_grep('/^PL_WSPD/i', $vars)) {
-        $groupName = 'Earth Relative Wind Speed';
+        $groupName = 'Platform Relative Wind Speed';
       } elseif (preg_grep('/^WSPD_E/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
       } elseif (preg_grep('/^WSPD_R/i', $vars)) {
