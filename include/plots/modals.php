@@ -90,15 +90,16 @@ function RenderZoomModal()
             flex-direction:column;
             box-sizing:border-box;
             min-height:0;
-            padding:0;
+            min-width:0;
+            padding:5px;
         \">
             <div id=\"zoomChartContainer\" style=\"
                 flex:1;
                 width:100%;
                 height:100%;
-                border:1px solid #ccc;
                 box-sizing:border-box;
                 overflow:hidden;
+                background:#fff;
             \"></div>
         </div>
         <div style=\"

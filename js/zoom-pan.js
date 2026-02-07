@@ -13,10 +13,20 @@
         const container = document.getElementById('zoomChartContainer');
         if (!modal || !container) return;
 
+        // Make modal visible early so we can read container dimensions
+        modal.style.display = 'flex';
+        
         container.innerHTML = '';
 
         const payload = window.__originalChartData;
         if (!payload) return;
+
+        // Delay chart rendering to ensure layout is complete
+        requestAnimationFrame(() => {
+            renderChart();
+        });
+        
+        function renderChart() {
 
         const { 
             plotData: data, 
@@ -140,8 +150,13 @@
             bottom: 70, 
             left: Math.max(70, dynamicLeftMargin) 
         };
-        const width = 1300 - margin.left - margin.right;
-        const height = 800 - margin.top - margin.bottom;
+        
+        // Calculate responsive plot dimensions based on container and modal size
+        // Layout should be complete due to requestAnimationFrame delay
+        const containerWidth = container.offsetWidth || 800;
+        const containerHeight = container.offsetHeight || 600;
+        const width = Math.max(containerWidth - margin.left - margin.right, 400);
+        const height = Math.max(containerHeight - margin.top - margin.bottom, 300);
 
         // Base X scale
         const baseX = d3.scaleTime()
@@ -174,11 +189,18 @@
             varsInGroup.forEach(v => yScales[v] = scale);
         });
 
-        // SVG setup with fixed margins for 3 left + 3 right axes
+        // SVG dimensions will be container size + margins
+        const svgWidth = containerWidth;
+        const svgHeight = containerHeight;
+
+        // SVG setup with responsive dimensions
         const svg = d3.select(container)
             .append('svg')
-            .attr('width', 1300)
-            .attr('height', 800);
+            .attr('width', svgWidth)
+            .attr('height', svgHeight)
+            .style('width', '100%')
+            .style('height', '100%')
+            .attr('preserveAspectRatio', 'xMidYMid meet');
 
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -564,8 +586,7 @@
                 xPos += item.itemWidth + itemSpacing;
             });
         });
-
-        modal.style.display = 'flex';
+        } // Close renderChart function
     };
 
     global.closeZoomModal = function () {
