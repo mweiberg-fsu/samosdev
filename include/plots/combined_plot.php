@@ -223,10 +223,16 @@ FORM;
       elseif ($prefix === 'd') {
         $plCrsVars = array();
         $otherDVars = array();
+        $windDirVars = array();
+        $spdVars = array();
 
         foreach ($vars as $var) {
           if (strpos($var, 'PL_CRS') === 0) {
             $plCrsVars[] = $var;
+          } elseif (preg_match('/^SPD/i', $var)) {
+            $spdVars[] = $var;
+          } elseif (preg_match('/^WDIR/i', $var)) {
+            $windDirVars[] = $var;
           } else {
             $otherDVars[] = $var;
           }
@@ -238,6 +244,24 @@ FORM;
             'name' => 'Platform Course',
             'prefix' => 'd_plcrs',
             'vars' => $plCrsVars
+          ));
+        }
+
+        // Add SPD variables group if any exist
+        if (!empty($spdVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Platform Relative Wind Speed',
+            'prefix' => 'd_spd',
+            'vars' => $spdVars
+          ));
+        }
+
+        // Add wind direction variables group if any exist
+        if (!empty($windDirVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Earth Relative Wind Direction',
+            'prefix' => 'd_wdir',
+            'vars' => $windDirVars
           ));
         }
 
