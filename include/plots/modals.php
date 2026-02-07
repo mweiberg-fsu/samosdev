@@ -309,8 +309,9 @@ function RenderPolarModal()
                 <span style="font-size:12px; opacity:0.8;">Angle = degrees, radius = time progression</span>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;">
-                <button onclick="downloadPolarPlot()" style="padding:8px 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">PNG</button>
-                <button onclick="closePolarModal()" style="padding:8px 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Close</button>
+              <button onclick="downloadPolarPlot()" style="padding:8px 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">PNG</button>
+              <button id="resetPolarBtn" style="padding:8px 12px; font-size:12px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Reset</button>
+              <button onclick="closePolarModal()" style="padding:8px 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Close</button>
             </div>
         </div>
         <div style="
@@ -349,7 +350,7 @@ function RenderPolarModal()
             text-overflow:ellipsis;
             font-family:'Space Grotesk', 'Segoe UI', sans-serif;
         ">
-            Polar plot focuses on degree-based variables in the current selection.
+            Zoom: mouse wheel | Pan: click+drag | Reset: button
         </div>
     </div>
 </div>

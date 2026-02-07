@@ -246,9 +246,31 @@
             .defined((d) => d.value != null);
 
         const hoverFormat = d3.timeFormat('%Y-%m-%d %H:%M');
+        const timeBisect = d3.bisector((d) => d.time).left;
+
+        const showTooltip = (event, d, label, unit) => {
+            const angleValue = normalizeAngle(d.value).toFixed(1);
+            const valueText = unit ? `${angleValue} ${unit}` : `${angleValue}°`;
+
+            tooltip
+                .style('opacity', 1)
+                .html(`
+                    <div style="font-weight:700; margin-bottom:4px; color:#9fd2ff;">${label}</div>
+                    <div>Time: ${hoverFormat(d.time)}</div>
+                    <div>Angle: ${valueText}</div>
+                `)
+                .style('left', `${event.pageX + 12}px`)
+                .style('top', `${event.pageY - 18}px`);
+        };
 
         vars.forEach((v) => {
-            const points = (processedData[v] || []).slice().sort((a, b) => parseTime(a.date) - parseTime(b.date));
+            const points = (processedData[v] || [])
+                .map((p) => ({
+                    ...p,
+                    time: parseTime(p.date)
+                }))
+                .filter((p) => p.time)
+                .sort((a, b) => a.time - b.time);
             if (!points.length) return;
 
             plot.append('path')
@@ -259,45 +281,47 @@
                 .attr('filter', 'url(#polar-glow)')
                 .attr('d', lineRadial);
 
-            plot.append('g')
-                .selectAll('circle')
-                .data(points)
-                .enter()
-                .append('circle')
-                .attr('cx', (d) => Math.cos(angleScale(normalizeAngle(d.value)) - Math.PI / 2) * rScale(parseTime(d.date)))
-                .attr('cy', (d) => Math.sin(angleScale(normalizeAngle(d.value)) - Math.PI / 2) * rScale(parseTime(d.date)))
-                .attr('r', 5)
-                .attr('fill', 'transparent')
-                .attr('stroke', 'none')
-                .style('cursor', 'crosshair')
-                .on('mousemove', (event, d) => {
-                    const label = longNames[v] || v;
-                    const unit = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
-                    const angleValue = normalizeAngle(d.value).toFixed(1);
-                    const valueText = unit ? `${angleValue} ${unit}` : `${angleValue}°`;
-
-                    tooltip
-                        .style('opacity', 1)
-                        .html(`
-                            <div style="font-weight:700; margin-bottom:4px; color:#9fd2ff;">${label}</div>
-                            <div>Time: ${hoverFormat(parseTime(d.date))}</div>
-                            <div>Angle: ${valueText}</div>
-                        `)
-                        .style('left', `${event.pageX + 12}px`)
-                        .style('top', `${event.pageY - 18}px`);
-                })
-                .on('mouseleave', () => {
-                    tooltip.style('opacity', 0);
-                });
-
             const lastPoint = points[points.length - 1];
             plot.append('circle')
-                .attr('cx', Math.cos(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(parseTime(lastPoint.date)))
-                .attr('cy', Math.sin(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(parseTime(lastPoint.date)))
+                .attr('cx', Math.cos(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(lastPoint.time))
+                .attr('cy', Math.sin(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(lastPoint.time))
                 .attr('r', 4.5)
                 .attr('fill', color(v))
                 .attr('stroke', '#ffffff')
                 .attr('stroke-width', 1.5);
+
+            plot.append('path')
+                .datum(points)
+                .attr('fill', 'none')
+                .attr('stroke', 'transparent')
+                .attr('stroke-width', 18)
+                .attr('d', lineRadial)
+                .style('cursor', 'crosshair')
+                .style('pointer-events', 'stroke')
+                .on('mousemove', (event) => {
+                    const [mx, my] = d3.pointer(event, plot.node());
+                    const radius = Math.sqrt((mx * mx) + (my * my));
+                    if (radius < innerRadius || radius > outerRadius) {
+                        tooltip.style('opacity', 0);
+                        return;
+                    }
+
+                    const timeValue = rScale.invert(radius);
+                    const index = timeBisect(points, timeValue);
+                    const prev = points[index - 1];
+                    const next = points[index];
+                    const nearest = !prev ? next : !next ? prev : (timeValue - prev.time > next.time - timeValue ? next : prev);
+
+                    if (!nearest) return;
+
+                    const label = longNames[v] || v;
+                    const unit = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
+
+                    showTooltip(event, nearest, label, unit);
+                })
+                .on('mouseleave', () => {
+                    tooltip.style('opacity', 0);
+                });
         });
 
         const { ship = '', shipName = '', date = '', hs = '00:00', he = '23:59' } = payload;
@@ -378,11 +402,21 @@
 
         const zoom = d3.zoom()
             .scaleExtent([0.7, 6])
+            .on('start', () => {
+                tooltip.style('opacity', 0);
+            })
             .on('zoom', (event) => {
                 plot.attr('transform', event.transform);
             });
 
         svg.call(zoom);
+
+        const resetBtn = document.getElementById('resetPolarBtn');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+            };
+        }
     }
 
     global.openPolarModal = function () {
@@ -409,6 +443,8 @@
     global.closePolarModal = function () {
         const modal = document.getElementById('polarModal');
         if (modal) modal.style.display = 'none';
+        const tooltip = document.getElementById('polar-tooltip');
+        if (tooltip) tooltip.style.opacity = 0;
         document.body.style.overflow = '';
     };
 
