@@ -110,6 +110,25 @@
             .style('width', '100%')
             .style('height', '100%');
 
+        const tooltip = (() => {
+            const existing = d3.select('#polar-tooltip');
+            if (!existing.empty()) return existing;
+            return d3.select('body')
+                .append('div')
+                .attr('id', 'polar-tooltip')
+                .style('position', 'absolute')
+                .style('background', 'rgba(22, 32, 45, 0.92)')
+                .style('border', '1px solid rgba(255,255,255,0.2)')
+                .style('border-radius', '8px')
+                .style('padding', '8px 10px')
+                .style('color', '#f7f9fb')
+                .style('font-family', '"Space Grotesk", "Segoe UI", sans-serif')
+                .style('font-size', '12px')
+                .style('pointer-events', 'none')
+                .style('opacity', 0)
+                .style('z-index', 10001);
+        })();
+
         const defs = svg.append('defs');
         const glow = defs.append('filter')
             .attr('id', 'polar-glow')
@@ -151,8 +170,10 @@
         const centerX = margin.left + width / 2;
         const centerY = margin.top + height / 2;
 
-        const plot = svg.append('g')
+        const zoomRoot = svg.append('g')
             .attr('transform', `translate(${centerX}, ${centerY})`);
+
+        const plot = zoomRoot.append('g');
 
         const color = d3.scaleOrdinal(d3.schemeTableau10).domain(vars);
         const timeTicks = rScale.ticks(4).filter((d) => d);
@@ -224,6 +245,8 @@
             .curve(d3.curveCardinal.tension(0.3))
             .defined((d) => d.value != null);
 
+        const hoverFormat = d3.timeFormat('%Y-%m-%d %H:%M');
+
         vars.forEach((v) => {
             const points = (processedData[v] || []).slice().sort((a, b) => parseTime(a.date) - parseTime(b.date));
             if (!points.length) return;
@@ -235,6 +258,37 @@
                 .attr('stroke-width', 2.4)
                 .attr('filter', 'url(#polar-glow)')
                 .attr('d', lineRadial);
+
+            plot.append('g')
+                .selectAll('circle')
+                .data(points)
+                .enter()
+                .append('circle')
+                .attr('cx', (d) => Math.cos(angleScale(normalizeAngle(d.value)) - Math.PI / 2) * rScale(parseTime(d.date)))
+                .attr('cy', (d) => Math.sin(angleScale(normalizeAngle(d.value)) - Math.PI / 2) * rScale(parseTime(d.date)))
+                .attr('r', 5)
+                .attr('fill', 'transparent')
+                .attr('stroke', 'none')
+                .style('cursor', 'crosshair')
+                .on('mousemove', (event, d) => {
+                    const label = longNames[v] || v;
+                    const unit = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
+                    const angleValue = normalizeAngle(d.value).toFixed(1);
+                    const valueText = unit ? `${angleValue} ${unit}` : `${angleValue}°`;
+
+                    tooltip
+                        .style('opacity', 1)
+                        .html(`
+                            <div style="font-weight:700; margin-bottom:4px; color:#9fd2ff;">${label}</div>
+                            <div>Time: ${hoverFormat(parseTime(d.date))}</div>
+                            <div>Angle: ${valueText}</div>
+                        `)
+                        .style('left', `${event.pageX + 12}px`)
+                        .style('top', `${event.pageY - 18}px`);
+                })
+                .on('mouseleave', () => {
+                    tooltip.style('opacity', 0);
+                });
 
             const lastPoint = points[points.length - 1];
             plot.append('circle')
@@ -321,6 +375,14 @@
                 legendY += legendSpacing;
             }
         });
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.7, 6])
+            .on('zoom', (event) => {
+                plot.attr('transform', event.transform);
+            });
+
+        svg.call(zoom);
     }
 
     global.openPolarModal = function () {
