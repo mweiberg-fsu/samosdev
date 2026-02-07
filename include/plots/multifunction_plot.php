@@ -287,26 +287,37 @@ FORM;
       // Instead, use pattern-based logic first, then fall back
       $groupName = '';
       
+      // Helper function to check if any value in array matches a regex
+      $hasPatternInArray = function($pattern, $array) {
+        foreach ($array as $value) {
+          if (preg_match($pattern, $value)) {
+            return true;
+          }
+        }
+        return false;
+      };
+      
       // Better group names based on patterns
+      // NOTE: Using custom hasPatternInArray function because preg_grep checks KEYS, not VALUES
       if (in_array('LAT', $vars) || in_array('lat', $vars)) {
         $groupName = 'Position (Lat/Lon)';
-      } elseif (preg_grep('/^PL_HD/i', $vars)) {
+      } elseif ($hasPatternInArray('/^PL_HD/i', $vars)) {
         $groupName = 'Platform Heading';
-      } elseif (preg_grep('/^PL_CRS/i', $vars)) {
+      } elseif ($hasPatternInArray('/^PL_CRS/i', $vars)) {
         $groupName = 'Platform Course';
-      } elseif (in_array('PL_WDIR', $vars) || preg_grep('/^WDIR_R/i', $vars)) {
+      } elseif (in_array('PL_WDIR', $vars) || $hasPatternInArray('/^WDIR_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Direction';
-      } elseif (preg_grep('/^WDIR_E/i', $vars) || preg_grep('/^WDIR\d/i', $vars) || preg_grep('/^WDIR$/i', $vars)) {
+      } elseif ($hasPatternInArray('/^WDIR_E/i', $vars) || $hasPatternInArray('/^WDIR\\d/i', $vars) || $hasPatternInArray('/^WDIR$/i', $vars)) {
         $groupName = 'Earth Relative Wind Direction';
-      } elseif (preg_grep('/^PL_WSPD/i', $vars)) {
+      } elseif ($hasPatternInArray('/^PL_WSPD/i', $vars)) {
         $groupName = 'Platform Relative Wind Speed';
-      } elseif (preg_grep('/^WSPD_E/i', $vars)) {
+      } elseif ($hasPatternInArray('/^WSPD_E/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
-      } elseif (preg_grep('/^WSPD_R/i', $vars)) {
+      } elseif ($hasPatternInArray('/^WSPD_R/i', $vars)) {
         $groupName = 'Platform Relative Wind Speed';
-      } elseif (preg_grep('/^SPD/i', $vars)) {
-        $groupName = 'Platform Relative Wind Speed';
-      } elseif (preg_grep('/^WSPD/i', $vars)) {
+      } elseif ($hasPatternInArray('/^SPD/i', $vars)) {
+        $groupName = 'Earth Relative Wind Speed';
+      } elseif ($hasPatternInArray('/^WSPD/i', $vars)) {
         $groupName = 'Earth Relative Wind Speed';
       } elseif (in_array('T', $vars) || in_array('TA', $vars)) {
         $groupName = 'Air Temperature';
@@ -389,7 +400,7 @@ FORM;
         // Add SPD variables group if any exist
         if (!empty($spdVars)) {
           array_push($jsGroups, array(
-            'name' => 'Platform Relative Wind Speed',
+            'name' => 'Earth Relative Wind Speed',
             'prefix' => 'd_spd',
             'vars' => $spdVars
           ));
