@@ -24,6 +24,35 @@
         return wrapped < 0 ? wrapped + 360 : wrapped;
     }
 
+    function unwrapAngles(points) {
+        if (!points || points.length === 0) return points;
+        
+        const unwrapped = [{ ...points[0] }];
+        let offset = 0;
+        
+        for (let i = 1; i < points.length; i++) {
+            const curr = points[i].value;
+            const prevUnwrapped = unwrapped[i - 1].value;
+            
+            // Calculate raw difference
+            let diff = curr - prevUnwrapped;
+            
+            // Adjust offset if jump is too large (crossing the 0/360 boundary)
+            if (diff > 180) {
+                offset -= 360;
+            } else if (diff < -180) {
+                offset += 360;
+            }
+            
+            unwrapped.push({
+                ...points[i],
+                value: curr + offset
+            });
+        }
+        
+        return unwrapped;
+    }
+
     function formatDateStr(d) {
         if (!d || d.length !== 8) return d || '';
         const year = d.substring(0, 4);
@@ -240,7 +269,7 @@
             .text((d) => timeFormat(d));
 
         const lineRadial = d3.lineRadial()
-            .angle((d) => angleScale(normalizeAngle(d.value)) - Math.PI / 2)
+            .angle((d) => angleScale(d.value) - Math.PI / 2)
             .radius((d) => rScale(parseTime(d.date)))
             .curve(d3.curveCardinal.tension(0.3))
             .defined((d) => d.value != null);
@@ -249,7 +278,7 @@
         const timeBisect = d3.bisector((d) => d.time).left;
 
         const showTooltip = (event, d, label, unit) => {
-            const angleValue = normalizeAngle(d.value).toFixed(1);
+            const angleValue = normalizeAngle(d.originalValue).toFixed(1);
             const valueText = unit ? `${angleValue} ${unit}` : `${angleValue}°`;
 
             tooltip
@@ -273,25 +302,31 @@
                 .sort((a, b) => a.time - b.time);
             if (!points.length) return;
 
+            // Unwrap angles to prevent crossing 0/360 boundary issues
+            const unwrappedPoints = unwrapAngles(points.map(p => ({
+                ...p,
+                originalValue: p.value
+            })));
+
             plot.append('path')
-                .datum(points)
+                .datum(unwrappedPoints)
                 .attr('fill', 'none')
                 .attr('stroke', color(v))
                 .attr('stroke-width', 2.4)
                 .attr('filter', 'url(#polar-glow)')
                 .attr('d', lineRadial);
 
-            const lastPoint = points[points.length - 1];
+            const lastPoint = unwrappedPoints[unwrappedPoints.length - 1];
             plot.append('circle')
-                .attr('cx', Math.cos(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(lastPoint.time))
-                .attr('cy', Math.sin(angleScale(normalizeAngle(lastPoint.value)) - Math.PI / 2) * rScale(lastPoint.time))
+                .attr('cx', Math.cos(angleScale(lastPoint.value) - Math.PI / 2) * rScale(lastPoint.time))
+                .attr('cy', Math.sin(angleScale(lastPoint.value) - Math.PI / 2) * rScale(lastPoint.time))
                 .attr('r', 4.5)
                 .attr('fill', color(v))
                 .attr('stroke', '#ffffff')
                 .attr('stroke-width', 1.5);
 
             plot.append('path')
-                .datum(points)
+                .datum(unwrappedPoints)
                 .attr('fill', 'none')
                 .attr('stroke', 'transparent')
                 .attr('stroke-width', 18)
@@ -307,9 +342,9 @@
                     }
 
                     const timeValue = rScale.invert(radius);
-                    const index = timeBisect(points, timeValue);
-                    const prev = points[index - 1];
-                    const next = points[index];
+                    const index = timeBisect(unwrappedPoints, timeValue);
+                    const prev = unwrappedPoints[index - 1];
+                    const next = unwrappedPoints[index];
                     const nearest = !prev ? next : !next ? prev : (timeValue - prev.time > next.time - timeValue ? next : prev);
 
                     if (!nearest) return;
