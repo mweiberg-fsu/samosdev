@@ -479,8 +479,21 @@ FORM;
   // Build units and long names
   $unitsMap = array();
   $longNames = array();
+  $hasPolarVariables = false;
+  $polarCompatibleVars = array('PL_CRS', 'PL_CRS2', 'PL_CRS3', 'PL_HD', 'PL_HD2', 'PL_HD3',
+                                'DIR', 'DIR2', 'DIR3', 'ER_WDIR', 'ER_WDIR2', 'ER_WDIR3',
+                                'PL_WDIR', 'PL_WDIR2', 'PL_WDIR3', 'SPD', 'SPD1', 'SPD2', 'SPD3',
+                                'PL_SPD', 'PL_SPD2', 'PL_SPD3');
+  
   foreach ($allVars as $var => $info) {
     $unitsMap[$var] = isset($info['units']) ? $info['units'] : '';
+    
+    // Check if this variable is polar-compatible
+    if (in_array($var, $polarCompatibleVars) || 
+        preg_match('/(deg|degree|degrees|°)/i', $unitsMap[$var])) {
+      $hasPolarVariables = true;
+    }
+    
     $varIdQuery = "SELECT long_name FROM known_variable WHERE variable_name = '$var'";
     db_query($varIdQuery);
     if ($varRow = db_get_row()) {
@@ -515,8 +528,14 @@ FORM;
     echo '<div style="text-align:center; margin:15px;">
       <button onclick="downloadCombinedPlot(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download PNG</button>
       <button onclick="downloadCombinedCSV(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download CSV</button>
-      <button onclick="openZoomModal(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Zoom & Pan</button>
-      <button onclick="openPolarModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Polar Plot</button>
+      <button onclick="openZoomModal(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Zoom & Pan</button>';
+  
+  if ($hasPolarVariables) {
+    echo '
+      <button onclick="openPolarModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Polar Plot</button>';
+  }
+  
+  echo '
       <button onclick="openShipTrackModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Ship Track</button>
       </div>';
 

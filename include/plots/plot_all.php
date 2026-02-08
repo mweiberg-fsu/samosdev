@@ -176,6 +176,23 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
       }
     }
     
+    // Detect if this group has polar-compatible variables
+    $hasPolarVariables = false;
+    $polarCompatibleVars = array('PL_CRS', 'PL_CRS2', 'PL_HD', 'PL_HD2', 'PL_WDIR', 'PL_WDIR2', 'DIR', 'DIR2', 'DIR3', 'WDIR', 'WDIR2', 'SPD', 'SPD2', 'WSPD', 'WSPD2');
+    $degreeUnitPattern = '/degree|deg|°/i';
+    
+    foreach (array_keys($plotData) as $var) {
+      if (in_array($var, $polarCompatibleVars)) {
+        $hasPolarVariables = true;
+        break;
+      }
+      $unit = isset($unitsMap[$var]) ? $unitsMap[$var] : '';
+      if (preg_match($degreeUnitPattern, $unit)) {
+        $hasPolarVariables = true;
+        break;
+      }
+    }
+    
     $chartId = 'combinedChart_' . $plotIndex;
     
     // Group title
@@ -183,11 +200,17 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     echo "<div id=\"$chartId\" style=\"width:790px; height:520px; margin:10px auto; border:1px solid #ccc; position:relative;\"></div>";
     
     // Buttons for this plot
-            echo "<div style=\"text-align:center; margin:15px;\">
+    echo "<div style=\"text-align:center; margin:15px;\">
               <button onclick=\"downloadCombinedPlot('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download PNG</button>
               <button onclick=\"downloadCombinedCSV('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download CSV</button>
-              <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Zoom & Pan</button>
-              <button onclick=\"openPolarModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Polar Plot</button>
+              <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Zoom & Pan</button>";
+    
+    if ($hasPolarVariables) {
+      echo "
+              <button onclick=\"openPolarModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Polar Plot</button>";
+    }
+    
+    echo "
               <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Ship Track</button>
               </div>";
     

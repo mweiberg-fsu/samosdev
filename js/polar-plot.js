@@ -270,7 +270,7 @@
 
         const plot = zoomRoot.append('g');
 
-        const color = d3.scaleOrdinal(d3.schemeTableau10).domain(vars);
+        const color = d3.scaleOrdinal(d3.schemeCategory10).domain(vars);
         const timeTicks = rScale.ticks(4).filter((d) => d);
 
         plot.selectAll('.polar-grid')
@@ -565,7 +565,7 @@
         const selectedVars = new Set(allVars);
         
         // Create color scale
-        const color = d3.scaleOrdinal(d3.schemeTableau10).domain(allVars);
+        const color = d3.scaleOrdinal(d3.schemeCategory10).domain(allVars);
 
         // Create checkboxes for each variable
         if (controlsDiv) {
