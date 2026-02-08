@@ -105,7 +105,7 @@ function RenderZoomModal()
             <div id=\"zoomChartContainer\" style=\"
                 flex:1;
                 width:100%;
-                height:100%;
+
                 box-sizing:border-box;
                 overflow:hidden;
         background:#ffffff;
@@ -230,7 +230,6 @@ function RenderShipTrackModal()
         <div id="shipTrackContainer" style="
             flex:1;
             width:100%;
-            height:100%;
             min-height:0;
       border:1px solid #d9e3ef;
             box-sizing:border-box;
@@ -341,7 +340,6 @@ function RenderPolarModal()
             <div id="polarChartContainer" style="
                 flex:1;
                 width:100%;
-                height:100%;
                 box-sizing:border-box;
                 overflow:hidden;
                 background:#ffffff;

@@ -198,6 +198,7 @@
             .append('svg')
             .attr('width', svgWidth)
             .attr('height', svgHeight)
+            .attr('viewBox', `0 0 ${svgWidth} ${svgHeight}`)
             .style('width', '100%')
             .style('height', '100%')
             .attr('preserveAspectRatio', 'xMidYMid meet');
