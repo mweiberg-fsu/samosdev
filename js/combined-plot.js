@@ -122,45 +122,8 @@
 
         if (allValidPoints.length === 0) return;
 
-        const windDirectionVars = ['DIR', 'DIR2', 'DIR3', 'PL_WDIR', 'PL_WDIR2', 'PL_WDIR3', 'PL_CRS', 'PL_CRS2', 'PL_CRS3', 'PL_HD', 'PL_HD2', 'PL_HD3'];
+        const windDirectionVars = ['PL_WDIR', 'PL_WDIR2', 'PL_WDIR3'];
         const color = d3.scaleOrdinal(d3.schemeCategory10).domain(vars);
-
-        // Helper function to segment directional data at 0/360 wraps
-        const segmentDirectionalData = (points) => {
-            if (!points || points.length < 2) return [points];
-            
-            const segments = [];
-            let currentSegment = [points[0]];
-            
-            for (let i = 1; i < points.length; i++) {
-                const curr = points[i].value;
-                const prev = points[i - 1].value;
-                const rawDiff = Math.abs(curr - prev);
-                
-                // Calculate shortest angular difference
-                let angularDiff = curr - prev;
-                if (angularDiff > 180) angularDiff -= 360;
-                else if (angularDiff < -180) angularDiff += 360;
-                
-                // Detect 0/360 boundary crossing (large raw diff but small angular diff)
-                const isBoundaryCross = rawDiff > 180 && Math.abs(angularDiff) < 90;
-                
-                if (isBoundaryCross) {
-                    // End current segment and start new one
-                    segments.push(currentSegment);
-                    currentSegment = [points[i]];
-                } else {
-                    // Continue current segment
-                    currentSegment.push(points[i]);
-                }
-            }
-            
-            if (currentSegment.length > 0) {
-                segments.push(currentSegment);
-            }
-            
-            return segments;
-        };
 
         // Group variables by their units
         const unitGroups = {};
@@ -414,7 +377,6 @@
         vars.forEach(v => {
             const points = processedData[v] || [];
             const yScale = yScales[v]; // Get the correct scale for this variable
-            const isWindDir = windDirectionVars.includes(v);
 
             // Create line generator with correct y-scale
             const lineGen = d3.line()
@@ -422,36 +384,29 @@
                 .y(d => yScale(d.value))
                 .defined(d => d.value != null);
 
-            // Segment wind direction data to handle 0/360 wraps
-            const segments = isWindDir ? segmentDirectionalData(points) : [points];
+            // Actual line
+            svg.append('path')
+                .datum(points)
+                .attr('fill', 'none')
+                .attr('stroke', color(v))
+                .attr('stroke-width', 2)
+                .attr('d', lineGen);
 
-            // Draw each segment
-            segments.forEach(segmentPoints => {
-                if (segmentPoints.length === 0) return;
-                
-                // Actual line
-                svg.append('path')
-                    .datum(segmentPoints)
-                    .attr('fill', 'none')
-                    .attr('stroke', color(v))
-                    .attr('stroke-width', 2)
-                    .attr('d', lineGen);
-
-                // Invisible fat line for easier hovering
-                svg.append('path')
-                    .datum(segmentPoints)
-                    .attr('fill', 'none')
-                    .attr('stroke', 'transparent')
-                    .attr('stroke-width', 16)
-                    .attr('d', lineGen)
-                    .style('cursor', 'crosshair')
-                    .on('mousemove', function (event) {
-                        const [mx] = d3.pointer(event, this);
-                        const x0 = x.invert(mx);
-                        const i = d3.bisector(d => parseTime(d.date)).left(segmentPoints, x0, 1);
-                        const d0 = segmentPoints[i - 1];
-                        const d1 = segmentPoints[i];
-                        if (!d0 || !d1) return;
+            // Invisible fat line for easier hovering
+            svg.append('path')
+                .datum(points)
+                .attr('fill', 'none')
+                .attr('stroke', 'transparent')
+                .attr('stroke-width', 16)
+                .attr('d', lineGen)
+                .style('cursor', 'crosshair')
+                .on('mousemove', function (event) {
+                    const [mx] = d3.pointer(event, this);
+                    const x0 = x.invert(mx);
+                    const i = d3.bisector(d => parseTime(d.date)).left(points, x0, 1);
+                    const d0 = points[i - 1];
+                    const d1 = points[i];
+                    if (!d0 || !d1) return;
 
                     const d = x0 - parseTime(d0.date) > parseTime(d1.date) - x0 ? d1 : d0;
                     if (d.value == null) return;
@@ -492,7 +447,6 @@
                         .style('opacity', 1);
                 })
                 .on('mouseout', () => tip.style('opacity', 0));
-            });
         });
 
         // === LEGEND - Use pre-calculated lines from margin calculation ===

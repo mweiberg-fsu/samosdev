@@ -99,41 +99,6 @@
         // Prevent body scrolling when modal is open
         document.body.style.overflow = 'hidden';
 
-        // Helper function to segment directional data at 0/360 wraps
-        const segmentDirectionalData = (points) => {
-            if (!points || points.length < 2) return [points];
-            
-            const segments = [];
-            let currentSegment = [points[0]];
-            
-            for (let i = 1; i < points.length; i++) {
-                const curr = points[i].value;
-                const prev = points[i - 1].value;
-                const rawDiff = Math.abs(curr - prev);
-                
-                // Calculate shortest angular difference
-                let angularDiff = curr - prev;
-                if (angularDiff > 180) angularDiff -= 360;
-                else if (angularDiff < -180) angularDiff += 360;
-                
-                // Detect 0/360 boundary crossing (large raw diff but small angular diff)
-                const isBoundaryCross = rawDiff > 180 && Math.abs(angularDiff) < 90;
-                
-                if (isBoundaryCross) {
-                    segments.push(currentSegment);
-                    currentSegment = [points[i]];
-                } else {
-                    currentSegment.push(points[i]);
-                }
-            }
-            
-            if (currentSegment.length > 0) {
-                segments.push(currentSegment);
-            }
-            
-            return segments;
-        };
-
         const parseTime = d3.timeParse('%Y-%m-%d %H:%M:%S');
         const formatTime = d3.timeFormat('%H:%M');
 
@@ -156,7 +121,7 @@
 
         if (allValidPoints.length === 0) return;
 
-        const windDirectionVars = ['DIR', 'DIR2', 'DIR3', 'PL_WDIR', 'PL_WDIR2', 'PL_WDIR3', 'PL_CRS', 'PL_CRS2', 'PL_CRS3', 'PL_HD', 'PL_HD2', 'PL_HD3'];
+        const windDirectionVars = ['PL_WDIR', 'PL_WDIR2', 'PL_WDIR3'];
         const color = d3.scaleOrdinal(d3.schemeCategory10).domain(vars);
 
         // === GROUP BY UNITS & CREATE Y SCALES ===
@@ -329,51 +294,34 @@
         // === DRAW LINES USING PER-VARIABLE Y SCALE ===
         const lineElements = [];
         const hoverPaths = [];
-        const segmentsByVar = {}; // Store segments for each variable
 
         vars.forEach(v => {
             const yScale = yScales[v];
-            const isWindDir = windDirectionVars.includes(v);
-            
-            // Segment wind direction data to handle 0/360 wraps
-            const segments = isWindDir ? segmentDirectionalData(processedData[v]) : [processedData[v]];
-            segmentsByVar[v] = segments;
-            
-            const varLineElements = [];
-            const varHoverPaths = [];
+            const line = d3.line()
+                .x(d => baseX(parseTime(d.date)))
+                .y(d => yScale(d.value))
+                .defined(d => d.value != null);
 
-            segments.forEach(segmentPoints => {
-                if (segmentPoints.length === 0) return;
-                
-                const line = d3.line()
-                    .x(d => baseX(parseTime(d.date)))
-                    .y(d => yScale(d.value))
-                    .defined(d => d.value != null);
+            // Visible line
+            lineElements.push(
+                plotArea.append('path')
+                    .datum(processedData[v])
+                    .attr('fill', 'none')
+                    .attr('stroke', color(v))
+                    .attr('stroke-width', 2.5)
+                    .attr('d', line)
+            );
 
-                // Visible line
-                varLineElements.push(
-                    plotArea.append('path')
-                        .datum(segmentPoints)
-                        .attr('fill', 'none')
-                        .attr('stroke', color(v))
-                        .attr('stroke-width', 2.5)
-                        .attr('d', line)
-                );
-
-                // Hover fat line
-                varHoverPaths.push(
-                    plotArea.append('path')
-                        .datum(segmentPoints)
-                        .attr('fill', 'none')
-                        .attr('stroke', 'transparent')
-                        .attr('stroke-width', 20)
-                        .attr('d', line)
-                        .style('cursor', 'crosshair')
-                );
-            });
-            
-            lineElements.push(varLineElements);
-            hoverPaths.push(varHoverPaths);
+            // Hover fat line
+            hoverPaths.push(
+                plotArea.append('path')
+                    .datum(processedData[v])
+                    .attr('fill', 'none')
+                    .attr('stroke', 'transparent')
+                    .attr('stroke-width', 20)
+                    .attr('d', line)
+                    .style('cursor', 'crosshair')
+            );
         });
 
         // === DRAW MULTIPLE Y-AXES - evenly distributed left/right ===
@@ -474,25 +422,15 @@
         vars.forEach(v => currentYScales[v] = yScales[v].copy());
 
         const updateChart = () => {
-            vars.forEach((v, varIndex) => {
+            vars.forEach(v => {
                 const yScale = currentYScales[v];
-                const segments = segmentsByVar[v];
-                const varLineElements = lineElements[varIndex];
-                const varHoverPaths = hoverPaths[varIndex];
-                
-                segments.forEach((segmentPoints, segIndex) => {
-                    const line = d3.line()
-                        .x(d => currentX(parseTime(d.date)))
-                        .y(d => yScale(d.value))
-                        .defined(d => d.value != null);
+                const line = d3.line()
+                    .x(d => currentX(parseTime(d.date)))
+                    .y(d => yScale(d.value))
+                    .defined(d => d.value != null);
 
-                    if (varLineElements[segIndex]) {
-                        varLineElements[segIndex].attr('d', line);
-                    }
-                    if (varHoverPaths[segIndex]) {
-                        varHoverPaths[segIndex].attr('d', line);
-                    }
-                });
+                lineElements[vars.indexOf(v)].attr('d', line);
+                hoverPaths[vars.indexOf(v)].attr('d', line);
             });
         };
 
@@ -532,13 +470,12 @@
             .style('min-width', '140px')
             .style('transition', 'opacity 0.15s');
 
-        hoverPaths.forEach((varPaths, i) => {
+        hoverPaths.forEach((path, i) => {
             const v = vars[i];
-            varPaths.forEach(path => {
-                path.on('mousemove', function (event) {
-                    const [mx] = d3.pointer(event, g.node());
-                    const x0 = currentX.invert(mx);
-                    const points = processedData[v];
+            path.on('mousemove', function (event) {
+                const [mx] = d3.pointer(event, g.node());
+                const x0 = currentX.invert(mx);
+                const points = processedData[v];
                 const bisect = d3.bisector(d => parseTime(d.date)).left;
                 const i = bisect(points, x0, 1);
                 const d0 = points[i - 1];
@@ -584,7 +521,6 @@
                 .style('opacity', 1);
             })
             .on('mouseout', () => hoverTooltip.style('opacity', 0));
-            });
         });
 
         // Reset button
