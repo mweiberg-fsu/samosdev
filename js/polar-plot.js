@@ -27,30 +27,55 @@
     function unwrapAngles(points) {
         if (!points || points.length === 0) return points;
         
-        const unwrapped = [{ ...points[0] }];
+        // Create segments where we break on large time gaps or when unwrapping gets too extreme
+        const segments = [];
+        let currentSegment = [{ ...points[0], segmentId: 0 }];
         let offset = 0;
+        let segmentId = 0;
         
         for (let i = 1; i < points.length; i++) {
             const curr = points[i].value;
-            const prevUnwrapped = unwrapped[i - 1].value;
+            const prev = points[i - 1].value;
+            const prevUnwrapped = currentSegment[currentSegment.length - 1].value;
             
-            // Calculate raw difference
-            let diff = curr - prevUnwrapped;
+            // Check for large time gap (more than 5 minutes)
+            const timeDiff = Math.abs(points[i].time - points[i - 1].time);
+            const fiveMinutes = 5 * 60 * 1000; // milliseconds
             
-            // Adjust offset if jump is too large (crossing the 0/360 boundary)
-            if (diff > 180) {
+            // Calculate the angular difference
+            let angularDiff = curr - prevUnwrapped;
+            
+            // Determine if we should adjust for 360° wrap
+            if (angularDiff > 180) {
                 offset -= 360;
-            } else if (diff < -180) {
+                angularDiff = curr + offset - prevUnwrapped;
+            } else if (angularDiff < -180) {
                 offset += 360;
+                angularDiff = curr + offset - prevUnwrapped;
             }
             
-            unwrapped.push({
-                ...points[i],
-                value: curr + offset
-            });
+            const unwrappedValue = curr + offset;
+            
+            // Check if offset has gotten too large (> 1 full rotation from start)
+            // or if there's a large time gap - start a new segment
+            if (Math.abs(offset) > 360 || timeDiff > fiveMinutes) {
+                segments.push(currentSegment);
+                offset = 0;
+                segmentId++;
+                currentSegment = [{ ...points[i], segmentId }];
+            } else {
+                currentSegment.push({
+                    ...points[i],
+                    value: unwrappedValue,
+                    segmentId
+                });
+            }
         }
         
-        return unwrapped;
+        segments.push(currentSegment);
+        
+        // Flatten all segments into one array
+        return segments.flat();
     }
 
     function formatDateStr(d) {
@@ -308,14 +333,36 @@
                 originalValue: p.value
             })));
 
-            plot.append('path')
-                .datum(unwrappedPoints)
-                .attr('fill', 'none')
-                .attr('stroke', color(v))
-                .attr('stroke-width', 2.4)
-                .attr('filter', 'url(#polar-glow)')
-                .attr('d', lineRadial);
+            // Group points by segment
+            const segments = [];
+            let currentSeg = [];
+            let lastSegmentId = unwrappedPoints[0]?.segmentId;
+            
+            unwrappedPoints.forEach(p => {
+                if (p.segmentId !== lastSegmentId) {
+                    if (currentSeg.length > 0) segments.push(currentSeg);
+                    currentSeg = [p];
+                    lastSegmentId = p.segmentId;
+                } else {
+                    currentSeg.push(p);
+                }
+            });
+            if (currentSeg.length > 0) segments.push(currentSeg);
 
+            // Draw each segment separately
+            segments.forEach(segmentPoints => {
+                if (segmentPoints.length < 2) return;
+                
+                plot.append('path')
+                    .datum(segmentPoints)
+                    .attr('fill', 'none')
+                    .attr('stroke', color(v))
+                    .attr('stroke-width', 2.4)
+                    .attr('filter', 'url(#polar-glow)')
+                    .attr('d', lineRadial);
+            });
+
+            // Draw end marker on the last point
             const lastPoint = unwrappedPoints[unwrappedPoints.length - 1];
             const lastAngleRad = (lastPoint.value / 360) * Math.PI * 2 - Math.PI / 2;
             plot.append('circle')
@@ -326,38 +373,43 @@
                 .attr('stroke', '#ffffff')
                 .attr('stroke-width', 1.5);
 
-            plot.append('path')
-                .datum(unwrappedPoints)
-                .attr('fill', 'none')
-                .attr('stroke', 'transparent')
-                .attr('stroke-width', 18)
-                .attr('d', lineRadial)
-                .style('cursor', 'crosshair')
-                .style('pointer-events', 'stroke')
-                .on('mousemove', (event) => {
-                    const [mx, my] = d3.pointer(event, plot.node());
-                    const radius = Math.sqrt((mx * mx) + (my * my));
-                    if (radius < innerRadius || radius > outerRadius) {
+            // Invisible hover path for all segments
+            segments.forEach(segmentPoints => {
+                if (segmentPoints.length < 2) return;
+                
+                plot.append('path')
+                    .datum(segmentPoints)
+                    .attr('fill', 'none')
+                    .attr('stroke', 'transparent')
+                    .attr('stroke-width', 18)
+                    .attr('d', lineRadial)
+                    .style('cursor', 'crosshair')
+                    .style('pointer-events', 'stroke')
+                    .on('mousemove', (event) => {
+                        const [mx, my] = d3.pointer(event, plot.node());
+                        const radius = Math.sqrt((mx * mx) + (my * my));
+                        if (radius < innerRadius || radius > outerRadius) {
+                            tooltip.style('opacity', 0);
+                            return;
+                        }
+
+                        const timeValue = rScale.invert(radius);
+                        const index = timeBisect(segmentPoints, timeValue);
+                        const prev = segmentPoints[index - 1];
+                        const next = segmentPoints[index];
+                        const nearest = !prev ? next : !next ? prev : (timeValue - prev.time > next.time - timeValue ? next : prev);
+
+                        if (!nearest) return;
+
+                        const label = longNames[v] || v;
+                        const unit = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
+
+                        showTooltip(event, nearest, label, unit);
+                    })
+                    .on('mouseleave', () => {
                         tooltip.style('opacity', 0);
-                        return;
-                    }
-
-                    const timeValue = rScale.invert(radius);
-                    const index = timeBisect(unwrappedPoints, timeValue);
-                    const prev = unwrappedPoints[index - 1];
-                    const next = unwrappedPoints[index];
-                    const nearest = !prev ? next : !next ? prev : (timeValue - prev.time > next.time - timeValue ? next : prev);
-
-                    if (!nearest) return;
-
-                    const label = longNames[v] || v;
-                    const unit = unitsMap[v] ? unitsMap[v].split(' (')[0] : '';
-
-                    showTooltip(event, nearest, label, unit);
-                })
-                .on('mouseleave', () => {
-                    tooltip.style('opacity', 0);
-                });
+                    });
+            });
         });
 
         const { ship = '', shipName = '', date = '', hs = '00:00', he = '23:59' } = payload;
