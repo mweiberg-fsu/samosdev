@@ -302,6 +302,12 @@ FORM;
     }
   }
   
+  // If not plot_all mode and initial load, do not auto-plot
+  if (!$plotAll && $selectAllOnLoad) {
+    echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
+    return;
+  }
+
   // If not plot_all mode and no variables selected, show message
   if (!$plotAll && empty($selectedVars)) {
     echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
@@ -322,7 +328,7 @@ FORM;
   }
 
   $allVarsSelected = !empty($allVars) && count($selectedVars) === count($allVars);
-  if (!$plotAll && $allVarsSelected) {
+  if (!$plotAll && $allVarsSelected && !$selectAllOnLoad) {
     include_once 'include/plots/plot_all.php';
     $singleVarGroups = array();
     foreach ($selectedVars as $var) {
@@ -500,7 +506,8 @@ FORM;
     'date' => $date,
     'order' => $order,
     'hs' => $hs,
-    'he' => $he
+    'he' => $he,
+    'showTitle' => false
   ));
 
   echo '<div id="combinedChart" style="width:790px; height:520px; margin:20px auto; border:1px solid #ccc;"></div>';

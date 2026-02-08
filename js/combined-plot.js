@@ -47,6 +47,7 @@
         const vars = Object.keys(data);
         
         // === CALCULATE LEGEND LINES FIRST (to determine top margin) ===
+        const showTitle = payload.showTitle !== false;
         const legendLineHeight = 20;
         const itemSpacing = 25;
         const baseAvailableWidth = 500; // Base width for legend calculation
@@ -95,9 +96,9 @@
         const numLegendLines = legendLines.length;
         
         // === CALCULATE DYNAMIC TOP MARGIN ===
-        const titlePadding = 15;
-        const titleHeight = 20;
-        const titleLegendGap = 10;
+        const titlePadding = showTitle ? 15 : 0;
+        const titleHeight = showTitle ? 20 : 0;
+        const titleLegendGap = showTitle ? 10 : 0;
         const legendBuffer = 20;
         const dynamicTopMargin = titlePadding + titleHeight + titleLegendGap + (numLegendLines * legendLineHeight) + legendBuffer;
 
@@ -268,18 +269,20 @@
         const endTime = he || '23:59';
         titleText += ` | ${startTime} - ${endTime} UTC`;
 
-        // Draw title with padding from top
-        const titleY = -(margin.top - titlePadding - titleHeight/2);
-        svg.append('text')
-            .attr('class', 'chart-title')
-            .attr('x', width / 2)
-            .attr('y', titleY)
-            .attr('text-anchor', 'middle')
-            .style('font-family', 'Arial, Helvetica, sans-serif')
-            .style('font-size', '16px')
-            .style('font-weight', 'bold')
-            .style('fill', '#2c3e50')
-            .text(titleText);
+        if (showTitle) {
+            // Draw title with padding from top
+            const titleY = -(margin.top - titlePadding - titleHeight/2);
+            svg.append('text')
+                .attr('class', 'chart-title')
+                .attr('x', width / 2)
+                .attr('y', titleY)
+                .attr('text-anchor', 'middle')
+                .style('font-family', 'Arial, Helvetica, sans-serif')
+                .style('font-size', '16px')
+                .style('font-weight', 'bold')
+                .style('fill', '#2c3e50')
+                .text(titleText);
+        }
 
         // Draw y-axes - evenly distributed left/right
         // Left gets indices 0, 2, 4... Right gets indices 1, 3, 5...
