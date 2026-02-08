@@ -269,9 +269,11 @@
         const endTime = he || '23:59';
         titleText += ` | ${startTime} - ${endTime} UTC`;
 
+        // Define titleY outside the if block so it's always available
+        const titleY = -(margin.top - titlePadding - titleHeight/2);
+        
         if (showTitle) {
             // Draw title with padding from top
-            const titleY = -(margin.top - titlePadding - titleHeight/2);
             svg.append('text')
                 .attr('class', 'chart-title')
                 .attr('x', width / 2)

@@ -204,6 +204,10 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     ));
     
     echo "<script>
+      // Initialize chart payloads object and store payload immediately
+      window.__chartPayloads = window.__chartPayloads || {};
+      window.__chartPayloads['$chartId'] = $jsPayload;
+      
       // Custom zoom modal opener for this chart (must be global)
       function openZoomModal_$plotIndex() {
         window.__originalChartData = window.__chartPayloads['$chartId'];
@@ -220,14 +224,10 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
       }
       
       document.addEventListener('DOMContentLoaded', () => {
-        const payload_$plotIndex = $jsPayload;
+        const payload_$plotIndex = window.__chartPayloads['$chartId'];
         if (typeof renderCombinedPlot === 'function') {
           renderCombinedPlot(payload_$plotIndex, '$chartId');
         }
-        
-        // Store payload for zoom modal
-        window.__chartPayloads = window.__chartPayloads || {};
-        window.__chartPayloads['$chartId'] = payload_$plotIndex;
       });
     </script>";
     
