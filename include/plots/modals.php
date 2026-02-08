@@ -337,13 +337,42 @@ function RenderPolarModal()
             padding:10px;
             background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,248,252,0.95));
         ">
+            <!-- Title and Legend Area (Static) -->
+            <div id="polarHeaderArea" style="
+                padding:10px 15px;
+                background:#ffffff;
+                border-radius:8px 8px 0 0;
+                border:1px solid #d9e3ef;
+                border-bottom:none;
+                flex-shrink:0;
+                box-sizing:border-box;
+            ">
+                <div id="polarTitleText" style="
+                    text-align:center;
+                    font-size:16px;
+                    font-weight:700;
+                    color:#2c3e50;
+                    margin-bottom:10px;
+                    font-family:'Space Grotesk', 'Segoe UI', sans-serif;
+                "></div>
+                <div id="polarVariableControls" style="
+                    display:flex;
+                    flex-wrap:wrap;
+                    gap:12px;
+                    justify-content:center;
+                    align-items:center;
+                    font-family:'Space Grotesk', 'Segoe UI', sans-serif;
+                    font-size:13px;
+                "></div>
+            </div>
+            
             <div id="polarChartContainer" style="
                 flex:1;
                 width:100%;
                 box-sizing:border-box;
                 overflow:hidden;
                 background:#ffffff;
-                border-radius:12px;
+                border-radius:0 0 12px 12px;
                 border:1px solid #d9e3ef;
             "></div>
         </div>
@@ -361,7 +390,7 @@ function RenderPolarModal()
             text-overflow:ellipsis;
             font-family:'Space Grotesk', 'Segoe UI', sans-serif;
         ">
-            Zoom: mouse wheel | Pan: click+drag | Reset: button
+            Select/deselect variables above | Zoom: mouse wheel | Pan: click+drag | Reset: button
         </div>
     </div>
 </div>

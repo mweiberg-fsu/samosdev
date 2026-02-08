@@ -139,7 +139,7 @@
         return { vars, processedData, allPoints, unitsMap, longNames };
     }
 
-    function renderPolarChart(payload, container) {
+    function renderPolarChart(payload, container, selectedVars = null) {
         container.innerHTML = '';
 
         if (!global.d3) {
@@ -147,20 +147,41 @@
             return;
         }
 
-        const { vars, processedData, allPoints, unitsMap, longNames } = buildPolarDataset(payload);
+        const { vars: allVars, processedData, allPoints, unitsMap, longNames } = buildPolarDataset(payload);
 
-        if (!vars.length || !allPoints.length) {
+        if (!allVars.length || !allPoints.length) {
             container.innerHTML = '<p style="color:#e74c3c; text-align:center;">No degree-based variables found for polar plotting.</p>';
             return;
         }
 
+        // Filter to only selected variables
+        const vars = selectedVars ? allVars.filter(v => selectedVars.includes(v)) : allVars;
+        
+        if (!vars.length) {
+            container.innerHTML = '<p style="color:#999; text-align:center;">Select at least one variable to display.</p>';
+            return;
+        }
+
+        // Recalculate points for selected variables only
+        const visiblePoints = [];
+        vars.forEach(v => {
+            if (processedData[v]) {
+                visiblePoints.push(...processedData[v]);
+            }
+        });
+
+        if (!visiblePoints.length) {
+            container.innerHTML = '<p style="color:#e74c3c; text-align:center;">No data available for selected variables.</p>';
+            return;
+        }
+
         const parseTime = d3.timeParse('%Y-%m-%d %H:%M:%S');
-        const timeExtent = d3.extent(allPoints, (d) => parseTime(d.date));
+        const timeExtent = d3.extent(visiblePoints, (d) => parseTime(d.date));
 
         const containerWidth = container.offsetWidth || 900;
         const containerHeight = container.offsetHeight || 700;
 
-        const margin = { top: 120, right: 70, bottom: 70, left: 70 };
+        const margin = { top: 40, right: 70, bottom: 70, left: 70 };
         const width = Math.max(containerWidth - margin.left - margin.right, 380);
         const height = Math.max(containerHeight - margin.top - margin.bottom, 380);
 
@@ -432,82 +453,6 @@
             });
         });
 
-        const { ship = '', shipName = '', date = '', hs = '00:00', he = '23:59' } = payload;
-        const titleParts = [];
-        const resolvedShip = shipName || ship;
-        if (resolvedShip) titleParts.push(resolvedShip);
-        if (ship && ship !== resolvedShip) titleParts.push(`(${ship})`);
-        let titleText = titleParts.join(' ');
-        if (date) titleText += ` - ${formatDateStr(date)}`;
-        titleText += ` | ${hs || '00:00'} - ${he || '23:59'} UTC`;
-
-        svg.append('text')
-            .attr('x', containerWidth / 2)
-            .attr('y', 38)
-            .attr('text-anchor', 'middle')
-            .style('font-family', '"Space Grotesk", "Segoe UI", sans-serif')
-            .style('font-size', '20px')
-            .style('font-weight', '700')
-            .style('fill', '#1d2b36')
-            .text('Polar Plot');
-
-        svg.append('text')
-            .attr('x', containerWidth / 2)
-            .attr('y', 64)
-            .attr('text-anchor', 'middle')
-            .style('font-family', '"Space Grotesk", "Segoe UI", sans-serif')
-            .style('font-size', '13px')
-            .style('fill', '#3f5266')
-            .text(titleText);
-
-        const legendItems = vars.map((v) => {
-            const longName = longNames[v] || v;
-            const unitPart = unitsMap[v] ? ` (${unitsMap[v].split(' (')[0]})` : '';
-            return `${longName}${unitPart}`;
-        });
-
-        const legendGroup = svg.append('g')
-            .attr('transform', `translate(${margin.left}, ${92})`);
-
-        const legendSpacing = 18;
-        let legendX = 0;
-        let legendY = 0;
-        const maxLegendWidth = containerWidth - margin.left - margin.right;
-
-        legendItems.forEach((label, idx) => {
-            const group = legendGroup.append('g')
-                .attr('transform', `translate(${legendX}, ${legendY})`);
-
-            group.append('rect')
-                .attr('width', 14)
-                .attr('height', 14)
-                .attr('rx', 3)
-                .attr('fill', color(vars[idx]));
-
-            group.append('text')
-                .attr('x', 20)
-                .attr('y', 11.5)
-                .style('font-family', '"Space Grotesk", "Segoe UI", sans-serif')
-                .style('font-size', '12px')
-                .style('font-weight', '600')
-                .style('fill', '#1f2d3d')
-                .text(label);
-
-            const tempText = svg.append('text')
-                .style('font-family', '"Space Grotesk", "Segoe UI", sans-serif')
-                .style('font-size', '12px')
-                .style('font-weight', '600')
-                .text(label);
-            const textWidth = tempText.node().getComputedTextLength();
-            tempText.remove();
-
-            legendX += textWidth + 42;
-            if (legendX > maxLegendWidth) {
-                legendX = 0;
-                legendY += legendSpacing;
-            }
-        });
-
         const zoom = d3.zoom()
             .scaleExtent([0.7, 6])
             .on('start', () => {
@@ -530,12 +475,17 @@
     global.openPolarModal = function () {
         const modal = document.getElementById('polarModal');
         const container = document.getElementById('polarChartContainer');
+        const headerArea = document.getElementById('polarHeaderArea');
+        const titleText = document.getElementById('polarTitleText');
+        const controlsDiv = document.getElementById('polarVariableControls');
+        
         if (!modal || !container) return;
 
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
         container.innerHTML = '';
+        if (controlsDiv) controlsDiv.innerHTML = '';
 
         const payload = window.__originalPolarData || window.__originalChartData;
         if (!payload) {
@@ -543,8 +493,117 @@
             return;
         }
 
+        // Build dataset to get available variables
+        const { vars: allVars, unitsMap, longNames } = buildPolarDataset(payload);
+        
+        if (!allVars.length) {
+            container.innerHTML = '<p style="color:#e74c3c; text-align:center;">No degree-based variables found.</p>';
+            return;
+        }
+
+        // Set title
+        if (titleText) {
+            const { ship = '', shipName = '', date = '', hs = '00:00', he = '23:59' } = payload;
+            
+            const shipNameDict = {
+                'WDC9': 'Atlantic Explorer',
+                'KAQP': 'Atlantis',
+                'WTED': 'Bell M. Shimada',
+                'WTEB': 'Fairweather',
+                'ZGOJ7': 'Falkor (too)',
+                'WTEK': 'Ferdinand Hassler',
+                'WTEO': 'Gordon Gunter',
+                'NEPP': 'Healy',
+                'WTDF': 'Henry B. Bigelow',
+                'VLMJ': 'Investigator',
+                'WDA7827': 'Kilo Moana',
+                'WTER': 'Nancy Foster',
+                'WARL': 'Neil Armstrong',
+                'VMIC': 'Nuyina',
+                'WTDH': 'Okeanos Explorer',
+                'WTDO': 'Oregon II',
+                'WTEP': 'Oscar Dyson',
+                'WTEE': 'Oscar Elton Sette',
+                'WTDL': 'Pisces',
+                'WTEF': 'Rainier',
+                'WTEG': 'Reuben Lasker',
+                'WSQ2674': 'Robert Gordon Sproul',
+                'KAOU': 'Roger Revelle',
+                'WTEC': 'Ron Brown',
+                'WSAF': 'Sally Ride',
+                'WDN7246': 'Sikuliaq',
+                'WDN7246C': 'Sikuliaq',
+                'KTDQ': 'T.G. Thompson',
+                'ZMFR': 'Tangaroa',
+                'WTEA': 'Thomas Jefferson'
+            };
+
+            const formatDateStr = (d) => {
+                if (!d || d.length !== 8) return d;
+                const year = d.substring(0, 4);
+                const month = d.substring(4, 6);
+                const day = d.substring(6, 8);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthName = months[parseInt(month, 10) - 1] || month;
+                return `${monthName} ${parseInt(day, 10)}, ${year}`;
+            };
+
+            const resolvedShipName = shipNameDict[ship] || shipName || ship;
+            const titleParts = [];
+            if (resolvedShipName) titleParts.push(resolvedShipName);
+            if (ship && ship !== resolvedShipName) titleParts.push(`(${ship})`);
+            
+            let title = titleParts.join(' ');
+            if (date) title += ` - ${formatDateStr(date)}`;
+            title += ` | ${hs} - ${he} UTC`;
+            
+            titleText.textContent = title;
+        }
+
+        // Initialize all variables as selected
+        const selectedVars = new Set(allVars);
+        
+        // Create color scale
+        const color = d3.scaleOrdinal(d3.schemeTableau10).domain(allVars);
+
+        // Create checkboxes for each variable
+        if (controlsDiv) {
+            allVars.forEach(v => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;
+                checkbox.style.cssText = 'cursor:pointer;';
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        selectedVars.add(v);
+                    } else {
+                        selectedVars.delete(v);
+                    }
+                    requestAnimationFrame(() => {
+                        renderPolarChart(payload, container, Array.from(selectedVars));
+                    });
+                });
+                
+                const colorBox = document.createElement('span');
+                colorBox.style.cssText = `width:14px; height:14px; background:${color(v)}; border:1px solid #333; border-radius:3px; display:inline-block;`;
+                
+                const varName = document.createElement('span');
+                varName.textContent = v;
+                varName.style.cssText = 'font-weight:600; color:#2c3e50;';
+                
+                label.appendChild(checkbox);
+                label.appendChild(colorBox);
+                label.appendChild(varName);
+                controlsDiv.appendChild(label);
+            });
+        }
+
         requestAnimationFrame(() => {
-            renderPolarChart(payload, container);
+            renderPolarChart(payload, container, Array.from(selectedVars));
         });
     };
 
