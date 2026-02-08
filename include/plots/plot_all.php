@@ -204,18 +204,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     ));
     
     echo "<script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const payload_$plotIndex = $jsPayload;
-        if (typeof renderCombinedPlot === 'function') {
-          renderCombinedPlot(payload_$plotIndex, '$chartId');
-        }
-        
-        // Store payload for zoom modal
-        window.__chartPayloads = window.__chartPayloads || {};
-        window.__chartPayloads['$chartId'] = payload_$plotIndex;
-      });
-      
-      // Custom zoom modal opener for this chart
+      // Custom zoom modal opener for this chart (must be global)
       function openZoomModal_$plotIndex() {
         window.__originalChartData = window.__chartPayloads['$chartId'];
         if (typeof openZoomModal === 'function') {
@@ -229,6 +218,17 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
           openPolarModal();
         }
       }
+      
+      document.addEventListener('DOMContentLoaded', () => {
+        const payload_$plotIndex = $jsPayload;
+        if (typeof renderCombinedPlot === 'function') {
+          renderCombinedPlot(payload_$plotIndex, '$chartId');
+        }
+        
+        // Store payload for zoom modal
+        window.__chartPayloads = window.__chartPayloads || {};
+        window.__chartPayloads['$chartId'] = payload_$plotIndex;
+      });
     </script>";
     
     $plotIndex++;

@@ -325,6 +325,7 @@ FORM;
   if ($plotAll && !empty($varGroups)) {
     include_once 'include/plots/plot_all.php';
     RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd);
+    return;
   }
 
   $allVarsSelected = !empty($allVars) && count($selectedVars) === count($allVars);
