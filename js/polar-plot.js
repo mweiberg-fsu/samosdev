@@ -4,6 +4,7 @@
 
     const allowedLongNames = new Set([
         'Platform Course',
+        'Platform Heading',
         'Earth Relative Wind Direction',
         'Platform Relative Wind Direction',
         'Platform Speed Over Ground'
@@ -11,6 +12,8 @@
 
     const allowedVarNames = new Set([
         'PL_CRS', 'PL_CRS2', 'PL_CRS3',
+        'PL_HD', 'PL_HD2', 'PL_HD3',
+        'DIR', 'DIR2', 'DIR3',
         'ER_WDIR', 'ER_WDIR2', 'ER_WDIR3',
         'PL_WDIR', 'PL_WDIR2', 'PL_WDIR3',
         'SPD', 'SPD1', 'SPD2', 'SPD3',
@@ -27,46 +30,63 @@
     function unwrapAngles(points) {
         if (!points || points.length === 0) return points;
         
-        // Create segments where we break on large time gaps or when unwrapping gets too extreme
+        // For polar plots, we need to carefully handle the 0/360 boundary
+        // Strategy: Detect smooth wraps vs. actual discontinuities
         const segments = [];
         let currentSegment = [{ ...points[0], segmentId: 0 }];
-        let offset = 0;
         let segmentId = 0;
         
         for (let i = 1; i < points.length; i++) {
             const curr = points[i].value;
             const prev = points[i - 1].value;
-            const prevUnwrapped = currentSegment[currentSegment.length - 1].value;
             
-            // Check for large time gap (more than 5 minutes)
+            // Check for large time gap (more than 5 minutes) - always split here
             const timeDiff = Math.abs(points[i].time - points[i - 1].time);
             const fiveMinutes = 5 * 60 * 1000; // milliseconds
             
-            // Calculate the angular difference
-            let angularDiff = curr - prevUnwrapped;
-            
-            // Determine if we should adjust for 360° wrap
-            if (angularDiff > 180) {
-                offset -= 360;
-                angularDiff = curr + offset - prevUnwrapped;
-            } else if (angularDiff < -180) {
-                offset += 360;
-                angularDiff = curr + offset - prevUnwrapped;
+            if (timeDiff > fiveMinutes) {
+                // Split due to time gap
+                segments.push(currentSegment);
+                segmentId++;
+                currentSegment = [{ ...points[i], segmentId }];
+                continue;
             }
             
-            const unwrappedValue = curr + offset;
+            // Calculate both raw difference and shortest angular difference
+            const rawDiff = Math.abs(curr - prev);
             
-            // Check if offset has gotten too large (> 1 full rotation from start)
-            // or if there's a large time gap - start a new segment
-            if (Math.abs(offset) > 360 || timeDiff > fiveMinutes) {
+            // Calculate shortest angular difference (accounting for wrap)
+            let angularDiff = curr - prev;
+            if (angularDiff > 180) {
+                angularDiff -= 360;
+            } else if (angularDiff < -180) {
+                angularDiff += 360;
+            }
+            
+            // Detect if this is a boundary crossing (0/360 wrap)
+            // This happens when raw difference is large (>180) but angular difference is small
+            const isBoundaryCross = rawDiff > 180 && Math.abs(angularDiff) < 90;
+            
+            // Detect if this is a real discontinuity (not a smooth wrap)
+            // We consider it discontinuous if the angle changes by more than 120° 
+            // (even on the shortest path) - this indicates actual data jump, not smooth rotation
+            const isDiscontinuity = Math.abs(angularDiff) > 120;
+            
+            if (isBoundaryCross) {
+                // This is a smooth 0/360 crossing - split segment to avoid visual artifacts
+                // but it represents continuous rotation
                 segments.push(currentSegment);
-                offset = 0;
+                segmentId++;
+                currentSegment = [{ ...points[i], segmentId }];
+            } else if (isDiscontinuity) {
+                // Real discontinuity in the data - split here
+                segments.push(currentSegment);
                 segmentId++;
                 currentSegment = [{ ...points[i], segmentId }];
             } else {
+                // Continue current segment - this is smooth continuous data
                 currentSegment.push({
                     ...points[i],
-                    value: unwrappedValue,
                     segmentId
                 });
             }
