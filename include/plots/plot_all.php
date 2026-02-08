@@ -4,11 +4,11 @@
  * Handles rendering multiple plots grouped by database order values
  */
 
-function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd)
+function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 'All Variable Groups')
 {
   global $file_history_id, $order, $ship, $date, $ship_id, $SERVER;
   
-  echo "<h2 style='text-align:center; color:#2c3e50; margin:20px 0;'>All Variable Groups</h2>";
+  echo "<h2 style='text-align:center; color:#2c3e50; margin:20px 0;'>$title</h2>";
   
   $plotIndex = 0;
   foreach ($varGroups as $group) {

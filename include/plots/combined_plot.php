@@ -11,6 +11,7 @@ function InsertCombinedPlot()
 
   /* ---------- 1. GET VARIABLES ---------- */
   $selectedVars = array();
+  $selectAllOnLoad = empty($_REQUEST['vars']) || !is_array($_REQUEST['vars']);
   $hs = isset($_REQUEST['hs']) ? $_REQUEST['hs'] : '00:00';
   $he = isset($_REQUEST['he']) ? $_REQUEST['he'] : '23:59';
 
@@ -42,8 +43,12 @@ function InsertCombinedPlot()
     if ($r->variable_name === 'time') continue;
     $ver = max((int) $r->process_version_no, 100);
     $allVars[$r->variable_name] = array('units' => $r->units, 'ver' => $ver);
-    $sel = in_array($r->variable_name, $selectedVars) ? ' selected' : '';
+    $sel = ($selectAllOnLoad || in_array($r->variable_name, $selectedVars)) ? ' selected' : '';
     $varOptions .= "<option value=\"{$r->variable_name}\"$sel>{$r->variable_name}</option>";
+  }
+
+  if ($selectAllOnLoad) {
+    $selectedVars = array_keys($allVars);
   }
 
   /* ---------- 2. SIMPLE FORM - NO SHIP/DATE SWITCHING ---------- */
@@ -312,8 +317,22 @@ FORM;
   
   /* ---------- PLOT ALL MODE ---------- */
   if ($plotAll && !empty($varGroups)) {
-    include 'include/plots/plot_all.php';
+    include_once 'include/plots/plot_all.php';
     RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd);
+  }
+
+  $allVarsSelected = !empty($allVars) && count($selectedVars) === count($allVars);
+  if (!$plotAll && $allVarsSelected) {
+    include_once 'include/plots/plot_all.php';
+    $singleVarGroups = array();
+    foreach ($selectedVars as $var) {
+      $singleVarGroups[] = array(
+        'name' => GetVariableTitle($var),
+        'vars' => array($var)
+      );
+    }
+    RenderPlotAll($singleVarGroups, $allVars, $filterStart, $filterEnd, 'All Variables');
+    return;
   }
 
   /* ---------- SINGLE PLOT MODE ---------- */
