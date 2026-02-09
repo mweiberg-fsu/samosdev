@@ -2,7 +2,7 @@
 function renderSingleTimeSeriesPlot(config) {
   const { container, dataUrl, flagsUrl, shipInfo, plotIndex, totalPlots } = config;
 
-  const margin = { top: 50, right: 50, bottom: 70, left: 70 };
+  const margin = { top: 100, right: 50, bottom: 70, left: 70 };
   const width = 850 - margin.left - margin.right;
   const height = 300 - margin.top - margin.bottom;
 
