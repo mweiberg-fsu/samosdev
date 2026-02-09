@@ -226,7 +226,7 @@ function InsertTimeSeriesPlot($link, $str_ship, $flags_arr, $num_of_plots, $plot
       var value_array = [];
 
       // set the dimensions and margins of the graph
-      var margin = { top: 30, right: 20, bottom: 50, left: 50 },
+      var margin = { top: 80, right: 20, bottom: 50, left: 50 },
         width = 800 - margin.left - margin.right,
         height = 270 - margin.top - margin.bottom;
 
