@@ -521,10 +521,10 @@ FORM;
     'order' => $order,
     'hs' => $hs,
     'he' => $he,
-    'showTitle' => false
+    'showTitle' => true
   ));
 
-  echo '<div id="combinedChart" style="width:790px; height:520px; margin:20px auto; border:1px solid #ccc;"></div>';
+  echo '<div id="combinedChart" style="width:790px; margin:20px auto; border:1px solid #ccc;"></div>';
     echo '<div style="text-align:center; margin:15px;">
       <button onclick="downloadCombinedPlot(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download PNG</button>
       <button onclick="downloadCombinedCSV(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download CSV</button>
