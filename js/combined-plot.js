@@ -400,48 +400,6 @@
         });
         
         console.log(`Total flagged points (excluding Z): ${allFlaggedPoints.length}`);
-        
-        // Always draw the flag indicator bar
-        const flagBarY = height + 42; // Position below x-axis labels
-        
-        // Draw "Flags" label on the left
-        svg.append('text')
-            .attr('x', -50)
-            .attr('y', flagBarY)
-            .attr('text-anchor', 'end')
-            .attr('dy', '0.35em')
-            .style('font-family', 'Arial, Helvetica, sans-serif')
-            .style('font-size', '11px')
-            .style('font-weight', 'bold')
-            .style('fill', '#666')
-            .text('Flags:');
-        
-        // Draw horizontal line (always visible)
-        svg.append('line')
-            .attr('x1', 0)
-            .attr('x2', width)
-            .attr('y1', flagBarY)
-            .attr('y2', flagBarY)
-            .attr('stroke', '#999')
-            .attr('stroke-width', 1.5);
-        
-        // Draw flag dots if any exist
-        if (allFlaggedPoints.length > 0) {
-            svg.selectAll('.flag-dot')
-                .data(allFlaggedPoints)
-                .enter()
-                .append('circle')
-                .attr('class', 'flag-dot')
-                .attr('cx', d => x(d.date))
-                .attr('cy', flagBarY)
-                .attr('r', 3)
-                .attr('fill', d => d.color)
-                .attr('stroke', '#333')
-                .attr('stroke-width', 0.5)
-                .style('opacity', 0.9)
-                .append('title')
-                .text(d => `Flag: ${d.flag} at ${d3.timeFormat('%H:%M')(d.date)}`);
-        }
 
         const tip = initTooltip();
 

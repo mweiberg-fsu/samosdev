@@ -343,6 +343,13 @@
         const hoverFormat = d3.timeFormat('%Y-%m-%d %H:%M');
         const timeBisect = d3.bisector((d) => d.time).left;
 
+        // Define flag colors for polar plot
+        const flagColors = {
+            'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
+            'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
+            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
+        };
+
         const showTooltip = (event, d, label, unit) => {
             const angleValue = normalizeAngle(d.originalValue).toFixed(1);
             const valueText = unit ? `${angleValue} ${unit}` : `${angleValue}°`;
@@ -401,6 +408,28 @@
                     .attr('stroke-width', 1.5)
                     .attr('filter', 'url(#polar-glow)')
                     .attr('d', lineRadial);
+            });
+
+            // Add flag circles on polar plot
+            const flaggedPointsForVar = unwrappedPoints.filter(p => {
+                const flag = p.flag ? p.flag.trim() : '';
+                return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
+            });
+
+            flaggedPointsForVar.forEach(p => {
+                const angleRad = (p.value / 360) * Math.PI * 2 - Math.PI / 2;
+                const radius = rScale(p.time);
+                plot.append('circle')
+                    .attr('cx', Math.cos(angleRad) * radius)
+                    .attr('cy', Math.sin(angleRad) * radius)
+                    .attr('r', 4)
+                    .attr('fill', flagColors[p.flag.trim()] || '#444')
+                    .attr('stroke', '#ffffff')
+                    .attr('stroke-width', 1.5)
+                    .style('opacity', 0.9)
+                    .style('cursor', 'pointer')
+                    .append('title')
+                    .text(`Flag: ${p.flag.trim()} at ${hoverFormat(p.time)}`);
             });
 
             // Draw end marker on the last point

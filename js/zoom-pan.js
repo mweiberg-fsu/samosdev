@@ -296,6 +296,13 @@
         const lineElements = [];
         const hoverPaths = [];
 
+        // Define flag colors
+        const flagColors = {
+            'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
+            'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
+            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
+        };
+
         vars.forEach(v => {
             const yScale = yScales[v];
             const line = d3.line()
@@ -312,6 +319,35 @@
                     .attr('stroke-width', 2.5)
                     .attr('d', line)
             );
+
+            // Add flag circles on the line plot
+            const flaggedPointsForVar = processedData[v].filter(p => {
+                const flag = p.flag ? p.flag.trim() : '';
+                return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
+            });
+
+            plotArea.selectAll(`.flag-circle-${v}`)
+                .data(flaggedPointsForVar)
+                .enter()
+                .append('circle')
+                .attr('class', `flag-circle flag-circle-${v}`)
+                .attr('cx', d => baseX(parseTime(d.date)))
+                .attr('cy', d => yScale(d.value))
+                .attr('r', 4)
+                .attr('fill', d => {
+                    const flag = d.flag ? d.flag.trim() : '';
+                    return flagColors[flag] || '#444';
+                })
+                .attr('stroke', '#000')
+                .attr('stroke-width', 1.5)
+                .style('opacity', 0.9)
+                .style('cursor', 'pointer')
+                .append('title')
+                .text(d => {
+                    const flag = d.flag ? d.flag.trim() : '';
+                    const timeStr = d3.timeFormat('%H:%M')(parseTime(d.date));
+                    return `Flag: ${flag} at ${timeStr}`;
+                });
 
             // Hover fat line
             hoverPaths.push(
@@ -432,6 +468,11 @@
 
                 lineElements[vars.indexOf(v)].attr('d', line);
                 hoverPaths[vars.indexOf(v)].attr('d', line);
+                
+                // Update flag circle positions
+                plotArea.selectAll(`.flag-circle-${v}`)
+                    .attr('cx', d => currentX(parseTime(d.date)))
+                    .attr('cy', d => yScale(d.value));
             });
         };
 
