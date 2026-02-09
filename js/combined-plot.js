@@ -382,8 +382,12 @@
         const allFlaggedPoints = [];
         vars.forEach(v => {
             const points = processedData[v] || [];
+            console.log(`Variable ${v} has ${points.length} points`);
             points.forEach(p => {
                 const flag = p.flag ? p.flag.trim() : '';
+                if (flag) {
+                    console.log(`Point at ${p.date}: flag='${flag}'`);
+                }
                 // Only include non-Z, non-empty flags
                 if (flag && flag !== 'Z' && flag !== ' ' && flagColors[flag]) {
                     allFlaggedPoints.push({
@@ -395,20 +399,34 @@
             });
         });
         
+        console.log(`Total flagged points (excluding Z): ${allFlaggedPoints.length}`);
+        
+        // Always draw the flag indicator bar
+        const flagBarY = height + 42; // Position below x-axis labels
+        
+        // Draw "Flags" label on the left
+        svg.append('text')
+            .attr('x', -50)
+            .attr('y', flagBarY)
+            .attr('text-anchor', 'end')
+            .attr('dy', '0.35em')
+            .style('font-family', 'Arial, Helvetica, sans-serif')
+            .style('font-size', '11px')
+            .style('font-weight', 'bold')
+            .style('fill', '#666')
+            .text('Flags:');
+        
+        // Draw horizontal line (always visible)
+        svg.append('line')
+            .attr('x1', 0)
+            .attr('x2', width)
+            .attr('y1', flagBarY)
+            .attr('y2', flagBarY)
+            .attr('stroke', '#999')
+            .attr('stroke-width', 1.5);
+        
+        // Draw flag dots if any exist
         if (allFlaggedPoints.length > 0) {
-            const flagBarY = height + 42; // Position below x-axis labels
-            
-            // Draw small background bar
-            svg.append('rect')
-                .attr('x', 0)
-                .attr('y', flagBarY - 3)
-                .attr('width', width)
-                .attr('height', 6)
-                .attr('fill', '#f0f0f0')
-                .attr('stroke', '#ccc')
-                .attr('stroke-width', 0.5);
-            
-            // Draw flag dots
             svg.selectAll('.flag-dot')
                 .data(allFlaggedPoints)
                 .enter()
@@ -416,11 +434,11 @@
                 .attr('class', 'flag-dot')
                 .attr('cx', d => x(d.date))
                 .attr('cy', flagBarY)
-                .attr('r', 2.5)
+                .attr('r', 3)
                 .attr('fill', d => d.color)
                 .attr('stroke', '#333')
                 .attr('stroke-width', 0.5)
-                .style('opacity', 0.8)
+                .style('opacity', 0.9)
                 .append('title')
                 .text(d => `Flag: ${d.flag} at ${d3.timeFormat('%H:%M')(d.date)}`);
         }
