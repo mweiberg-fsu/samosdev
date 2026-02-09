@@ -270,7 +270,7 @@
 
         const plot = zoomRoot.append('g');
 
-        const color = d3.scaleOrdinal(d3.schemeCategory10).domain(vars);
+        const color = d3.scaleOrdinal(d3.schemeCategory10).domain(allVars);
         const timeTicks = rScale.ticks(4).filter((d) => d);
 
         plot.selectAll('.polar-grid')
