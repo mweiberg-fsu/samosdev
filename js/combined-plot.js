@@ -371,6 +371,60 @@
             .attr('dy', '0.15em')
             .attr('transform', 'rotate(-45)');
 
+        // === FLAG INDICATOR BAR ===
+        // Collect all flagged points (excluding Z flags) from all variables
+        const flagColors = {
+            'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
+            'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
+            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
+        };
+        
+        const allFlaggedPoints = [];
+        vars.forEach(v => {
+            const points = processedData[v] || [];
+            points.forEach(p => {
+                const flag = p.flag ? p.flag.trim() : '';
+                // Only include non-Z, non-empty flags
+                if (flag && flag !== 'Z' && flag !== ' ' && flagColors[flag]) {
+                    allFlaggedPoints.push({
+                        date: parseTime(p.date),
+                        flag: flag,
+                        color: flagColors[flag]
+                    });
+                }
+            });
+        });
+        
+        if (allFlaggedPoints.length > 0) {
+            const flagBarY = height + 42; // Position below x-axis labels
+            
+            // Draw small background bar
+            svg.append('rect')
+                .attr('x', 0)
+                .attr('y', flagBarY - 3)
+                .attr('width', width)
+                .attr('height', 6)
+                .attr('fill', '#f0f0f0')
+                .attr('stroke', '#ccc')
+                .attr('stroke-width', 0.5);
+            
+            // Draw flag dots
+            svg.selectAll('.flag-dot')
+                .data(allFlaggedPoints)
+                .enter()
+                .append('circle')
+                .attr('class', 'flag-dot')
+                .attr('cx', d => x(d.date))
+                .attr('cy', flagBarY)
+                .attr('r', 2.5)
+                .attr('fill', d => d.color)
+                .attr('stroke', '#333')
+                .attr('stroke-width', 0.5)
+                .style('opacity', 0.8)
+                .append('title')
+                .text(d => `Flag: ${d.flag} at ${d3.timeFormat('%H:%M')(d.date)}`);
+        }
+
         const tip = initTooltip();
 
         // Draw lines + hover tooltip
