@@ -464,6 +464,35 @@
                 .attr('stroke-width', 2)
                 .attr('d', lineGen);
 
+            // Add flag circles on the line plot
+            const flaggedPointsForVar = points.filter(p => {
+                const flag = p.flag ? p.flag.trim() : '';
+                return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
+            });
+
+            svg.selectAll(`.flag-circle-${v}`)
+                .data(flaggedPointsForVar)
+                .enter()
+                .append('circle')
+                .attr('class', `flag-circle flag-circle-${v}`)
+                .attr('cx', d => x(parseTime(d.date)))
+                .attr('cy', d => yScale(d.value))
+                .attr('r', 4)
+                .attr('fill', d => {
+                    const flag = d.flag ? d.flag.trim() : '';
+                    return flagColors[flag] || '#444';
+                })
+                .attr('stroke', '#000')
+                .attr('stroke-width', 1.5)
+                .style('opacity', 0.9)
+                .style('cursor', 'pointer')
+                .append('title')
+                .text(d => {
+                    const flag = d.flag ? d.flag.trim() : '';
+                    const timeStr = d3.timeFormat('%H:%M')(parseTime(d.date));
+                    return `Flag: ${flag} at ${timeStr}`;
+                });
+
             // Invisible fat line for easier hovering
             svg.append('path')
                 .datum(points)
