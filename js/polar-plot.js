@@ -417,7 +417,8 @@
             });
 
             flaggedPointsForVar.forEach(p => {
-                const angleRad = (p.value / 360) * Math.PI * 2 - Math.PI / 2;
+                // Use originalValue for the angle, not the unwrapped value
+                const angleRad = (p.originalValue / 360) * Math.PI * 2 - Math.PI / 2;
                 const radius = rScale(p.time);
                 plot.append('circle')
                     .attr('cx', Math.cos(angleRad) * radius)
