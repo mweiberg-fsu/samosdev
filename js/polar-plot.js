@@ -139,7 +139,7 @@
         return { vars, processedData, allPoints, unitsMap, longNames };
     }
 
-    function renderPolarChart(payload, container, selectedVars = null) {
+    function renderPolarChart(payload, container, selectedVars = null, initialTransform = null) {
         container.innerHTML = '';
 
         if (!global.d3) {
@@ -398,7 +398,7 @@
                     .datum(segmentPoints)
                     .attr('fill', 'none')
                     .attr('stroke', color(v))
-                    .attr('stroke-width', 2.4)
+                    .attr('stroke-width', 1.5)
                     .attr('filter', 'url(#polar-glow)')
                     .attr('d', lineRadial);
             });
@@ -463,6 +463,11 @@
             });
 
         svg.call(zoom);
+        
+        // Apply initial transform if provided (to preserve zoom state)
+        if (initialTransform) {
+            svg.call(zoom.transform, initialTransform);
+        }
 
         const resetBtn = document.getElementById('resetPolarBtn');
         if (resetBtn) {
@@ -583,8 +588,11 @@
                     } else {
                         selectedVars.delete(v);
                     }
+                    // Preserve current zoom transform
+                    const svg = container.querySelector('svg');
+                    const currentTransform = svg ? d3.zoomTransform(svg) : null;
                     requestAnimationFrame(() => {
-                        renderPolarChart(payload, container, Array.from(selectedVars));
+                        renderPolarChart(payload, container, Array.from(selectedVars), currentTransform);
                     });
                 });
                 
