@@ -372,11 +372,11 @@
             .attr('transform', 'rotate(-45)');
 
         // === FLAG INDICATOR BAR ===
-        // Collect all flagged points (excluding Z flags) from all variables
+        // Collect all flagged points (including Z flags) from all variables
         const flagColors = {
             'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
             'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
-            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
+            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#444444'
         };
         
         const allFlaggedPoints = [];
@@ -388,8 +388,8 @@
                 if (flag) {
                     console.log(`Point at ${p.date}: flag='${flag}'`);
                 }
-                // Only include non-Z, non-empty flags
-                if (flag && flag !== 'Z' && flag !== ' ' && flagColors[flag]) {
+                // Only include non-empty flags
+                if (flag && flag !== ' ' && flagColors[flag]) {
                     allFlaggedPoints.push({
                         date: parseTime(p.date),
                         flag: flag,
@@ -398,8 +398,8 @@
                 }
             });
         });
-        
-        console.log(`Total flagged points (excluding Z): ${allFlaggedPoints.length}`);
+
+        console.log(`Total flagged points (including Z): ${allFlaggedPoints.length}`);
 
         const tip = initTooltip();
 
@@ -425,7 +425,7 @@
             // Add flag circles on the line plot
             const flaggedPointsForVar = points.filter(p => {
                 const flag = p.flag ? p.flag.trim() : '';
-                return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
+                return flag && flag !== ' ' && flagColors[flag];
             });
 
             svg.selectAll(`.flag-circle-${v}`)
@@ -571,9 +571,13 @@
         const svg = document.querySelector('#' + chartId + ' svg');
         if (!svg) return;
 
+        const exportScale = 2;
+        const exportWidth = 790 * exportScale;
+        const exportHeight = 520 * exportScale;
+
         const svgClone = svg.cloneNode(true);
-        svgClone.setAttribute('width', 790);
-        svgClone.setAttribute('height', 520);
+        svgClone.setAttribute('width', exportWidth);
+        svgClone.setAttribute('height', exportHeight);
         if (!svgClone.hasAttribute('xmlns')) svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
         // Inject font styles to ensure consistent rendering on export
@@ -598,8 +602,8 @@
         source = '<?xml version="1.0" standalone="no"?>\n' + source;
 
         const canvas = document.createElement('canvas');
-        canvas.width = 790;
-        canvas.height = 520;
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -608,7 +612,7 @@
         const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         img.onload = function () {
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
             URL.revokeObjectURL(url);
             canvas.toBlob(function (blob) {
                 // Build filename with ship, date, time
