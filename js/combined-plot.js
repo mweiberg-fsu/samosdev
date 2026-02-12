@@ -372,11 +372,11 @@
             .attr('transform', 'rotate(-45)');
 
         // === FLAG INDICATOR BAR ===
-        // Collect all flagged points (including Z flags) from all variables
+        // Collect all flagged points (excluding Z flags) from all variables
         const flagColors = {
             'B': '#00FFFF', 'D': '#0000FF', 'E': '#8A2BE2', 'F': '#00FF00',
             'G': '#FF8C00', 'I': '#FFFF00', 'J': '#FF00FF', 'K': '#FF0000',
-            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4', 'Z': '#444444'
+            'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
         };
         
         const allFlaggedPoints = [];
@@ -388,8 +388,8 @@
                 if (flag) {
                     console.log(`Point at ${p.date}: flag='${flag}'`);
                 }
-                // Only include non-empty flags
-                if (flag && flag !== ' ' && flagColors[flag]) {
+                // Only include non-Z, non-empty flags
+                if (flag && flag !== 'Z' && flag !== ' ' && flagColors[flag]) {
                     allFlaggedPoints.push({
                         date: parseTime(p.date),
                         flag: flag,
@@ -399,7 +399,7 @@
             });
         });
 
-        console.log(`Total flagged points (including Z): ${allFlaggedPoints.length}`);
+        console.log(`Total flagged points (excluding Z): ${allFlaggedPoints.length}`);
 
         const tip = initTooltip();
 
@@ -425,7 +425,7 @@
             // Add flag circles on the line plot
             const flaggedPointsForVar = points.filter(p => {
                 const flag = p.flag ? p.flag.trim() : '';
-                return flag && flag !== ' ' && flagColors[flag];
+                return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
 
             svg.selectAll(`.flag-circle-${v}`)
@@ -571,9 +571,8 @@
         const svg = document.querySelector('#' + chartId + ' svg');
         if (!svg) return;
 
-        const exportScale = 2;
-        const exportWidth = 790 * exportScale;
-        const exportHeight = 520 * exportScale;
+        const exportWidth = 1920;
+        const exportHeight = 1080;
 
         const svgClone = svg.cloneNode(true);
         svgClone.setAttribute('width', exportWidth);
