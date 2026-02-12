@@ -668,8 +668,11 @@
                 const points = plotData[v]?.points || [];
                 const point = points.find(p => p.date === ts);
                 if (point) {
+                    const flagValue = point.flag && point.flag.trim() !== '' && point.flag.trim() !== ' '
+                        ? point.flag.trim()
+                        : 'Z';
                     csv += ',' + (point.value !== null ? point.value : '');
-                    csv += ',' + (point.flag && point.flag.trim() !== ' ' ? point.flag.trim() : '');
+                    csv += ',' + flagValue;
                 } else {
                     csv += ',,';
                 }
