@@ -457,15 +457,28 @@ FORM;
     'showTitle' => true
   ));
 
-  echo '<div id="combinedChart" style="width:790px; margin:20px auto; border:1px solid #ccc;"></div>';
-    echo '<div style="text-align:center; margin:15px;">
-      <button onclick="downloadCombinedPlot(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download PNG</button>
-      <button onclick="downloadCombinedCSV(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download CSV</button>
-      <button onclick="openZoomModal(\'combinedChart\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Zoom & Pan</button>';
-  
-  echo '
-      <button onclick="openShipTrackModal()" style="padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Ship Track</button>
-      </div>';
+  echo '<style>
+    .plot-menu-wrap { position: relative; width: 790px; margin: 20px auto; border: 1px solid #ccc; }
+    .plot-menu { position: absolute; top: 8px; right: 8px; z-index: 25; }
+    .plot-menu > summary { list-style: none; cursor: pointer; width: 30px; height: 30px; line-height: 28px; text-align: center; font-size: 18px; border: 1px solid #bbb; border-radius: 4px; background: #fff; }
+    .plot-menu > summary::-webkit-details-marker { display: none; }
+    .plot-menu-dropdown { position: absolute; right: 0; margin-top: 6px; background: #fff; border: 1px solid #bbb; border-radius: 6px; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 6px; }
+    .plot-menu-dropdown button { display: block; width: 100%; margin: 4px 0; padding: 7px 10px; font-size: 13px; text-align: left; cursor: pointer; border: 1px solid #d0d0d0; border-radius: 4px; background: #fff; }
+    .plot-menu-dropdown button:hover { background: #f5f5f5; }
+  </style>';
+
+  echo '<div class="plot-menu-wrap">';
+  echo '  <details class="plot-menu">';
+  echo '    <summary title="Plot actions">&#9776;</summary>';
+  echo '    <div class="plot-menu-dropdown">';
+  echo '      <button onclick="downloadCombinedPlot(\'combinedChart\')">Download PNG</button>';
+  echo '      <button onclick="downloadCombinedCSV(\'combinedChart\')">Download CSV</button>';
+  echo '      <button onclick="openZoomModal(\'combinedChart\')">Zoom & Pan</button>';
+  echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
+  echo '    </div>';
+  echo '  </details>';
+  echo '  <div id="combinedChart" style="width:100%; min-height:520px;"></div>';
+  echo '</div>';
 
   echo "<script src=\"https://d3js.org/d3.v6.min.js\"></script>";
   echo "<script src=\"js/combined-plot.js\"></script>";
