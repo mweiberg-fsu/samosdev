@@ -19,6 +19,8 @@ include_once 'include/global.inc.php';
 require_once 'include/helpers.php';
 require_once 'include/plots/timeseries_plot.php';
 require_once 'include/plots/combined_plot.php';
+require_once 'include/plots/plot_new.php';
+require_once 'include/plots/plot_all_groups.php';
 require_once 'include/plots/multifunction_plot.php';
 require_once 'include/plots/map.php';
 
@@ -79,6 +81,8 @@ echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&o
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=4"><font size=1>[Z Flags]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=6&fbound=1"><font size=1>[Plot]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=6&fbound=0"><font size=1>[Plot (bound w/o flags)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=9"><font size=1>[Plot (new)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=10"><font size=1>[Plot (all groups)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=7"><font size=1>[Plot (combined)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=8"><font size=1>[Plot (multifunction)]</font></a>&nbsp;';
 
@@ -124,15 +128,24 @@ switch ($mode) {
   case 6:
     InsertPlot();
     break;
-  default:
-    break;
-
+  
   case 7:
     InsertCombinedPlot();
     break;
     
   case 8:
     InsertMultifunctionPlot();
+    break;
+    
+  case 9:
+    InsertPlotNew();
+    break;
+    
+  case 10:
+    InsertPlotAllGroups();
+    break;
+  
+  default:
     break;
 }
 echo '</div>', "\n\n";

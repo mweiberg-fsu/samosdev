@@ -51,7 +51,67 @@ function InsertCombinedPlot()
     $selectedVars = array_keys($allVars);
   }
 
-  /* ---------- 2. SIMPLE FORM - NO SHIP/DATE SWITCHING ---------- */
+  /* ---------- 2. FORM WITH SHIP/DATE SWITCHING ---------- */
+  
+  // Build ship dictionary for dropdown
+  $shipDict = array();
+  $shipQuery = "SELECT ship_id, call_sign, ship_name FROM ship ORDER BY ship_name";
+  db_query($shipQuery);
+  
+  while ($shipRow = db_get_row()) {
+    $shipDict[$shipRow->ship_id] = array($shipRow->call_sign, $shipRow->ship_name);
+  }
+  
+  if (empty($shipDict)) {
+    $shipDict = array(
+      71 => array('WDC9417', 'Atlantic Explorer'),
+      32 => array('KAQP', 'Atlantis'),
+      76 => array('WTED', 'Bell M. Shimada'),
+      61 => array('WTEB', 'Fairweather'),
+      146 => array('ZGOJ7', 'Falkor (too)'),
+      81 => array('WTEK', 'Ferdinand Hassler'),
+      57 => array('WTEO', 'Gordon Gunter'),
+      39 => array('NEPP', 'Healy'),
+      54 => array('WTDF', 'Henry B. Bigelow'),
+      87 => array('VLMJ', 'Investigator'),
+      12 => array('WDA7827', 'Kilo Moana'),
+      49 => array('WTER', 'Nancy Foster'),
+      86 => array('WARL', 'Neil Armstrong'),
+      150 => array('VMIC', 'Nuyina'),
+      66 => array('WTDH', 'Okeanos Explorer'),
+      62 => array('WTDO', 'Oregon II'),
+      51 => array('WTEP', 'Oscar Dyson'),
+      64 => array('WTEE', 'Oscar Elton Sette'),
+      69 => array('WTDL', 'Pisces'),
+      60 => array('WTEF', 'Rainier'),
+      85 => array('WTEG', 'Reuben Lasker'),
+      77 => array('WSQ2674', 'Robert Gordon Sproul'),
+      73 => array('KAOU', 'Roger Revelle'),
+      55 => array('WTEC', 'Ron Brown'),
+      91 => array('WSAF', 'Sally Ride'),
+      149 => array('WDN7246', 'Sikuliaq'),
+      153 => array('WDN7246C', 'Sikuliaq'),
+      14 => array('KTDQ', 'T.G. Thompson'),
+      75 => array('ZMFR', 'Tangaroa'),
+      79 => array('WTEA', 'Thomas Jefferson'),
+    );
+  }
+  
+  uasort($shipDict, function($a, $b) {
+    return strcasecmp($a[1], $b[1]);
+  });
+  
+  $shipOptions = '';
+  foreach ($shipDict as $sid => $info) {
+    $callSign = $info[0];
+    $shipName = $info[1];
+    $sel = (strval($sid) == strval($ship_id)) ? ' selected' : '';
+    $shipOptions .= "<option value=\"{$sid}|{$callSign}\"$sel>{$shipName} ({$callSign})</option>";
+  }
+  
+  $dateOnly = substr($date, 0, 8);
+  $sqlDateDash = substr($dateOnly, 0, 4) . '-' . substr($dateOnly, 4, 2) . '-' . substr($dateOnly, 6, 2);
+  
   $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=7";
 
   echo <<<FORM
@@ -66,8 +126,11 @@ function InsertCombinedPlot()
       </td>
     </tr>
     <tr>
-      <th>Time Range</th>
+      <th>Date &amp; Time Range</th>
       <td>
+        <input type="date" name="date_picker" id="datePicker" value="$sqlDateDash" 
+               style="padding:4px; font-family:monospace; font-size:14px;">
+        &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
         From: <input type="text" name="hs" id="hs" value="$hs" size="5" maxlength="5" 
                     style="text-align:center; font-family:monospace;" 
                     placeholder="00:00">
@@ -78,9 +141,17 @@ function InsertCombinedPlot()
       </td>
     </tr>
     <tr>
+      <th>Switch Ship</th>
+      <td>
+        <select name="switch_ship" id="switchShipSelect" style="width:280px;">
+          $shipOptions
+        </select>
+      </td>
+    </tr>
+    <tr>
       <th>Plot</th>
       <td>
-        <button type="submit" style="padding:8px 25px; font-size:14px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
+        <button type="button" id="updatePlotBtn" style="padding:8px 25px; font-size:14px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
                 onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
           Update Plot
         </button>
@@ -92,6 +163,68 @@ function InsertCombinedPlot()
     </tr>
   </table>
 </form>
+
+<script>
+// Form sync
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shipIdParam = urlParams.get('id');
+  const shipParam = urlParams.get('ship');
+  const dateParam = urlParams.get('date');
+  const varsParam = urlParams.getAll('vars[]');
+  
+  // Sync ship dropdown
+  const shipSelect = document.getElementById('switchShipSelect');
+  if (shipSelect && (shipIdParam || shipParam)) {
+    let matched = false;
+    
+    if (shipIdParam) {
+      for (let i = 0; i < shipSelect.options.length; i++) {
+        const option = shipSelect.options[i];
+        const optionShipId = option.value.split('|')[0];
+        if (optionShipId == shipIdParam) {
+          option.selected = true;
+          matched = true;
+          break;
+        }
+      }
+    }
+    
+    if (!matched && shipParam) {
+      for (let i = 0; i < shipSelect.options.length; i++) {
+        const option = shipSelect.options[i];
+        const optionCallSign = option.value.split('|')[1];
+        const cleanShipParam = shipParam.replace(/[A-Z]$/, '');
+        const cleanOptionCallSign = optionCallSign ? optionCallSign.replace(/[A-Z]$/, '') : '';
+        
+        if (optionCallSign === shipParam || cleanOptionCallSign === cleanShipParam) {
+          option.selected = true;
+          matched = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Sync date picker
+  const datePicker = document.getElementById('datePicker');
+  if (datePicker && dateParam) {
+    const dateStr = dateParam.substring(0, 8);
+    const formattedDate = dateStr.substring(0, 4) + '-' + dateStr.substring(4, 6) + '-' + dateStr.substring(6, 8);
+    datePicker.value = formattedDate;
+  }
+  
+  // Sync variable selections
+  const varsSelect = document.querySelector('select[name="vars[]"]');
+  if (varsSelect && varsParam.length > 0) {
+    for (let option of varsSelect.options) {
+      if (varsParam.includes(option.value)) {
+        option.selected = true;
+      }
+    }
+  }
+})();
+</script>
 FORM;
 
   // Output the JavaScript for Plot All functionality
@@ -239,6 +372,48 @@ FORM;
   
   echo ";\n\n";
   echo "console.log('Variable groups loaded from database:', variableGroupsFromDB);\n\n";
+  
+  // Update Plot button handler
+  echo "document.getElementById('updatePlotBtn').addEventListener('click', function() {\n";
+  echo "    const shipSelect = document.getElementById('switchShipSelect');\n";
+  echo "    let shipId = '$ship_id';\n";
+  echo "    let callSign = '$ship';\n";
+  echo "    \n";
+  echo "    if (shipSelect && shipSelect.value) {\n";
+  echo "        const parts = shipSelect.value.split('|');\n";
+  echo "        shipId = parts[0];\n";
+  echo "        callSign = parts[1];\n";
+  echo "    }\n";
+  echo "    \n";
+  echo "    const datePicker = document.getElementById('datePicker');\n";
+  echo "    let dateVal = '$date';\n";
+  echo "    if (datePicker && datePicker.value) {\n";
+  echo "        dateVal = datePicker.value.replace(/-/g, '') + '000001';\n";
+  echo "    }\n";
+  echo "    \n";
+  echo "    const hsVal = document.getElementById('hs').value || '00:00';\n";
+  echo "    const heVal = document.getElementById('he').value || '23:59';\n";
+  echo "    \n";
+  echo "    let url = 'index.php?ship=' + encodeURIComponent(callSign) + \n";
+  echo "              '&id=' + shipId + \n";
+  echo "              '&date=' + dateVal +\n";
+  echo "              '&order=$order' +\n";
+  echo "              '&history_id=$file_history_id' +\n";
+  echo "              '&mode=7' +\n";
+  echo "              '&hs=' + encodeURIComponent(hsVal) +\n";
+  echo "              '&he=' + encodeURIComponent(heVal);\n";
+  echo "    \n";
+  echo "    const varsSelect = document.querySelector('select[name=\"vars[]\"]');\n";
+  echo "    if (varsSelect) {\n";
+  echo "        const selectedVars = Array.from(varsSelect.selectedOptions).map(opt => opt.value);\n";
+  echo "        selectedVars.forEach(v => {\n";
+  echo "            url += '&vars[]=' + encodeURIComponent(v);\n";
+  echo "        });\n";
+  echo "    }\n";
+  echo "    \n";
+  echo "    window.location.href = url;\n";
+  echo "});\n\n";
+  
   echo "// Plot All button handler\n";
   echo "document.getElementById('plotAllBtn').addEventListener('click', function() {\n";
   echo "    const varsSelect = document.querySelector('select[name=\"vars[]\"]');\n";
@@ -248,7 +423,21 @@ FORM;
   echo "    }\n";
   echo "    \n";
   echo "    const availableVars = Array.from(varsSelect.options).map(opt => opt.value);\n";
-  echo "    console.log('Available variables:', availableVars);\n";
+  echo "    const shipSelect = document.getElementById('switchShipSelect');\n";
+  echo "    let shipId = '$ship_id';\n";
+  echo "    let callSign = '$ship';\n";
+  echo "    \n";
+  echo "    if (shipSelect && shipSelect.value) {\n";
+  echo "        const parts = shipSelect.value.split('|');\n";
+  echo "        shipId = parts[0];\n";
+  echo "        callSign = parts[1];\n";
+  echo "    }\n";
+  echo "    \n";
+  echo "    const datePicker = document.getElementById('datePicker');\n";
+  echo "    let dateVal = '$date';\n";
+  echo "    if (datePicker && datePicker.value) {\n";
+  echo "        dateVal = datePicker.value.replace(/-/g, '') + '000001';\n";
+  echo "    }\n";
   echo "    \n";
   echo "    const hsVal = document.getElementById('hs').value || '00:00';\n";
   echo "    const heVal = document.getElementById('he').value || '23:59';\n";
@@ -274,9 +463,9 @@ FORM;
   echo "    }\n";
   echo "    \n";
   echo "    // Build URL with plot_all mode\n";
-  echo "    let url = 'index.php?ship=" . urlencode($ship) . "' + \n";
-  echo "              '&id=$ship_id' + \n";
-  echo "              '&date=$date' +\n";
+  echo "    let url = 'index.php?ship=' + encodeURIComponent(callSign) + \n";
+  echo "              '&id=' + shipId + \n";
+  echo "              '&date=' + dateVal +\n";
   echo "              '&order=$order' +\n";
   echo "              '&history_id=$file_history_id' +\n";
   echo "              '&mode=7' +\n";
@@ -302,12 +491,6 @@ FORM;
     }
   }
   
-  // If not plot_all mode and initial load, do not auto-plot
-  if (!$plotAll && $selectAllOnLoad) {
-    echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
-    return;
-  }
-
   // If not plot_all mode and no variables selected, show message
   if (!$plotAll && empty($selectedVars)) {
     echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
