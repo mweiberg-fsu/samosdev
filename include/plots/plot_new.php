@@ -304,7 +304,7 @@ FORM;
     echo '      <button onclick="downloadCombinedPlot(\'' . $chartId . '\')">Download PNG</button>';
     echo '      <button onclick="downloadCombinedCSV(\'' . $chartId . '\')">Download CSV</button>';
     echo '      <button onclick="openZoomModal(\'' . $chartId . '\')">Zoom & Pan</button>';
-    echo '      <button onclick="openShipTrackModal_' . $plotIndex . '()">Ship Track</button>';
+    echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
     echo '    </div>';
     echo '  </details>';
     echo '  <div id="' . $chartId . '" style="width:100%; min-height:520px;"></div>';
