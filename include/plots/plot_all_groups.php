@@ -78,13 +78,13 @@ FORM;
   
   // Build variable groups based on database order (same logic as combined plot)
   if ($order > 100) {
-    $groupQuery = "SELECT kv.variable_name, kv.order_value 
+    $groupQuery = "SELECT DISTINCT kv.variable_name, kv.order_value 
                    FROM merged_qc_summary mqcs 
                    INNER JOIN known_variable kv ON mqcs.known_variable_id = kv.variable_id 
                    WHERE merged_file_history_id = $file_history_id 
                    ORDER BY kv.order_value";
   } else {
-    $groupQuery = "SELECT kv.variable_name, kv.order_value 
+    $groupQuery = "SELECT DISTINCT kv.variable_name, kv.order_value 
                    FROM qc_summary qcs 
                    INNER JOIN known_variable kv ON qcs.known_variable_id = kv.variable_id 
                    WHERE daily_file_history_id = $file_history_id 
@@ -92,72 +92,105 @@ FORM;
   }
 
   db_query($groupQuery);
-  $groupedVars = array();
-  while ($row = db_get_row()) {
-    if ($row->variable_name === 'time') continue;
-    $orderValue = (int) $row->order_value;
-    if (!isset($groupedVars[$orderValue])) {
-      $groupedVars[$orderValue] = array();
+  $varsByOrder = array();
+  while ($varRow = db_get_row()) {
+    if ($varRow->variable_name === 'time') continue;
+
+    $orderValue = $varRow->order_value;
+    $groupPrefix = substr($orderValue, 0, 1);
+
+    if (!isset($varsByOrder[$groupPrefix])) {
+      $varsByOrder[$groupPrefix] = array();
     }
-    $groupedVars[$orderValue][] = $row->variable_name;
+    $varsByOrder[$groupPrefix][] = $varRow->variable_name;
   }
 
-  // Build JS groups array
+  // Build JS groups array using combined plot grouping rules
   $jsGroups = array();
-  
-  foreach ($groupedVars as $orderValue => $vars) {
+
+  foreach ($varsByOrder as $prefix => $vars) {
     if (empty($vars)) continue;
-    
-    $groupName = GetVariableTitle($vars[0]);
-    $prefix = preg_replace('/[^a-z0-9_]/i', '_', strtolower($groupName));
-    
-    // Special handling for 'd' variables
-    if (count($vars) > 1) {
-      $firstVar = $vars[0];
-      if (preg_match('/^d_/i', $firstVar)) {
-        // Split d variables into subgroups
-        $spdVars = array();
-        $windDirVars = array();
-        $otherDVars = array();
-        
-        foreach ($vars as $v) {
-          if (preg_match('/^d_spd/i', $v)) {
-            $spdVars[] = $v;
-          } elseif (preg_match('/^d_wdir/i', $v)) {
-            $windDirVars[] = $v;
-          } else {
-            $otherDVars[] = $v;
-          }
-        }
 
-        if (!empty($spdVars)) {
-          array_push($jsGroups, array(
-            'name' => GetVariableTitle($spdVars[0]),
-            'prefix' => 'd_spd',
-            'vars' => $spdVars
-          ));
-        }
+    $firstVar = reset($vars);
+    $groupName = GetVariableTitle($firstVar);
 
-        if (!empty($windDirVars)) {
-          array_push($jsGroups, array(
-            'name' => GetVariableTitle($windDirVars[0]),
-            'prefix' => 'd_wdir',
-            'vars' => $windDirVars
-          ));
-        }
+    // Special handling for 'q' prefix: split TS vars from other q vars
+    if ($prefix === 'q') {
+      $tsVars = array();
+      $otherVars = array();
 
-        if (!empty($otherDVars)) {
-          array_push($jsGroups, array(
-            'name' => GetVariableTitle($otherDVars[0]),
-            'prefix' => 'd_other',
-            'vars' => $otherDVars
-          ));
+      foreach ($vars as $var) {
+        if (strpos($var, 'TS') === 0) {
+          $tsVars[] = $var;
+        } else {
+          $otherVars[] = $var;
         }
-      } else {
+      }
+
+      if (!empty($tsVars)) {
         array_push($jsGroups, array(
-          'name' => $groupName,
-          'prefix' => $prefix,
-          'vars' => $vars
+          'name' => 'Sea Temperature',
+          'prefix' => 'q_ts',
+          'vars' => $tsVars
+        ));
+      }
+
+      if (!empty($otherVars)) {
+        array_push($jsGroups, array(
+          'name' => 'Salinity & Conductivity',
+          'prefix' => 'q_other',
+          'vars' => $otherVars
+        ));
+      }
+    }
+    // Special handling for 'd' prefix: split PL_CRS / SPD / WDIR / others
+    elseif ($prefix === 'd') {
+      $plCrsVars = array();
+      $spdVars = array();
+      $windDirVars = array();
+      $otherDVars = array();
+
+      foreach ($vars as $var) {
+        if (strpos($var, 'PL_CRS') === 0) {
+          $plCrsVars[] = $var;
+        } elseif (preg_match('/^WSPD/i', $var)) {
+          $spdVars[] = $var;
+        } elseif (preg_match('/^WDIR/i', $var)) {
+          $windDirVars[] = $var;
+        } else {
+          $otherDVars[] = $var;
+        }
+      }
+
+      if (!empty($plCrsVars)) {
+        array_push($jsGroups, array(
+          'name' => GetVariableTitle($plCrsVars[0]),
+          'prefix' => 'd_plcrs',
+          'vars' => $plCrsVars
+        ));
+      }
+
+      if (!empty($spdVars)) {
+        array_push($jsGroups, array(
+          'name' => GetVariableTitle($spdVars[0]),
+          'prefix' => 'd_spd',
+          'vars' => $spdVars
+        ));
+      }
+
+      if (!empty($windDirVars)) {
+        array_push($jsGroups, array(
+          'name' => GetVariableTitle($windDirVars[0]),
+          'prefix' => 'd_wdir',
+          'vars' => $windDirVars
+        ));
+      }
+
+      if (!empty($otherDVars)) {
+        array_push($jsGroups, array(
+          'name' => GetVariableTitle($otherDVars[0]),
+          'prefix' => 'd_other',
+          'vars' => $otherDVars
         ));
       }
     } else {
