@@ -82,7 +82,7 @@ function InsertPlotNew()
       <td>
         <button type="submit" style="padding:8px 25px; font-size:14px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
                 onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
-          Update Plot
+          Plot
         </button>
       </td>
     </tr>
@@ -92,13 +92,13 @@ FORM;
 
   // If initial load (no variables selected), show message
   if ($selectAllOnLoad) {
-    echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
+    echo "<p style='text-align:center; color:#666;'>Select variables above and click Plot.</p>";
     return;
   }
 
   // If no variables selected, show message
   if (empty($selectedVars)) {
-    echo "<p style='text-align:center; color:#666;'>Select variables above and click Update Plot.</p>";
+    echo "<p style='text-align:center; color:#666;'>Select variables above and click Plot.</p>";
     return;
   }
   
@@ -293,11 +293,6 @@ FORM;
       <button onclick="downloadCombinedPlot(\'' . $chartId . '\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download PNG</button>
       <button onclick="downloadCombinedCSV(\'' . $chartId . '\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;" onmouseover="this.style.background=\'#27ae60\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#27ae60\';">Download CSV</button>
       <button onclick="openZoomModal(\'' . $chartId . '\')" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Zoom & Pan</button>';
-    
-    if ($hasPolarVariables) {
-      echo '
-      <button onclick="openPolarModal_' . $plotIndex . '()" style="padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Polar Plot</button>';
-    }
     
     echo '
       <button onclick="openShipTrackModal_' . $plotIndex . '()" style="padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;" onmouseover="this.style.background=\'#007cba\'; this.style.color=\'white\';" onmouseout="this.style.background=\'transparent\'; this.style.color=\'#007cba\';">Ship Track</button>

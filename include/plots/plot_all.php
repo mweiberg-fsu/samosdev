@@ -205,11 +205,6 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
               <button onclick=\"downloadCombinedCSV('$chartId')\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#27ae60; border:2px solid #27ae60; border-radius:4px; font-weight:bold; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#27ae60'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#27ae60';\">Download CSV</button>
               <button onclick=\"openZoomModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Zoom & Pan</button>";
     
-    if ($hasPolarVariables) {
-      echo "
-              <button onclick=\"openPolarModal_$plotIndex()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; margin-right:5px; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Polar Plot</button>";
-    }
-    
     echo "
               <button onclick=\"openShipTrackModal()\" style=\"padding:8px 16px; font-size:14px; cursor:pointer; background:transparent; color:#007cba; border:2px solid #007cba; border-radius:4px; transition:all 0.3s ease;\" onmouseover=\"this.style.background='#007cba'; this.style.color='white';\" onmouseout=\"this.style.background='transparent'; this.style.color='#007cba';\">Ship Track</button>
               </div>";
@@ -239,13 +234,6 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
         }
       }
 
-      function openPolarModal_$plotIndex() {
-        window.__originalPolarData = window.__chartPayloads['$chartId'];
-        if (typeof openPolarModal === 'function') {
-          openPolarModal();
-        }
-      }
-      
       document.addEventListener('DOMContentLoaded', () => {
         const payload_$plotIndex = window.__chartPayloads['$chartId'];
         if (typeof renderCombinedPlot === 'function') {
