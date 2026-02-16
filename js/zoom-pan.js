@@ -377,18 +377,14 @@
             if (isLeft) leftAxisCount++;
             else rightAxisCount++;
             
-            let yAxis, axisOffset, labelOffset;
+            let yAxis, axisOffset;
             
             if (isLeft) {
                 yAxis = d3.axisLeft(scale).ticks(8);
                 axisOffset = -positionInSide * axisSpacing;
-                // Increase padding to avoid overlap with tick labels
-                labelOffset = axisOffset - 92;
             } else {
                 yAxis = d3.axisRight(scale).ticks(8);
                 axisOffset = width + positionInSide * axisSpacing;
-                // Increase padding to avoid overlap with tick labels
-                labelOffset = axisOffset + 98;
             }
             
             if (isWindDir) {
@@ -413,6 +409,18 @@
             axisGroup.selectAll('text')
                 .style('fill', axisColor)
                 .style('font-size', '13px');
+
+            const tickNodes = axisGroup.selectAll('text').nodes();
+            const maxTickLabelWidth = tickNodes.reduce((maxWidth, node) => {
+                if (!node || typeof node.getBBox !== 'function') return maxWidth;
+                return Math.max(maxWidth, node.getBBox().width || 0);
+            }, 0);
+
+            const tickPaddingFromAxis = 10;
+            const axisLabelGap = 5;
+            const labelOffset = isLeft
+                ? axisOffset - maxTickLabelWidth - tickPaddingFromAxis - axisLabelGap
+                : axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
 
             // Y-axis label
             g.append('text')
