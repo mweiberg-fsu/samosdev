@@ -140,11 +140,11 @@
         // Distribute axes: left gets ceil(n/2), right gets floor(n/2)
         const numLeftAxes = Math.ceil(numAxes / 2);
         const numRightAxes = Math.floor(numAxes / 2);
-        const axisSpacing = 55;
-        const baseMargin = 50; // Base margin for axis labels
+        const axisSpacing = 72;
+        const baseMargin = 55; // Base margin for axis labels
         
-        const dynamicLeftMargin = baseMargin + (numLeftAxes > 0 ? (numLeftAxes - 1) * axisSpacing + 50 : 0);
-        const dynamicRightMargin = baseMargin + (numRightAxes > 0 ? (numRightAxes - 1) * axisSpacing + 50 : 0);
+        const dynamicLeftMargin = baseMargin + (numLeftAxes > 0 ? (numLeftAxes - 1) * axisSpacing + 70 : 0);
+        const dynamicRightMargin = baseMargin + (numRightAxes > 0 ? (numRightAxes - 1) * axisSpacing + 70 : 0);
         
         const margin = { 
             top: Math.max(70, dynamicTopMargin), 
@@ -311,12 +311,12 @@
                 yAxis = d3.axisLeft(scale).ticks(8);
                 axisOffset = -positionInSide * axisSpacing;
                 // Increased padding to provide extra buffer for left axes
-                labelOffset = axisOffset - 80;
+                labelOffset = axisOffset - 92;
             } else {
                 yAxis = d3.axisRight(scale).ticks(8);
                 axisOffset = width + positionInSide * axisSpacing;
                 // Increased padding to provide extra buffer for right axes
-                labelOffset = axisOffset + 85;
+                labelOffset = axisOffset + 98;
             }
             
             if (isWindDir) {
@@ -340,7 +340,7 @@
             axisGroup.selectAll('path, line').style('stroke', axisColor);
             axisGroup.selectAll('text')
                 .style('fill', axisColor)
-                .style('font-size', '15px');
+                .style('font-size', '13px');
 
             // Y-axis label - use longName from the first variable in this unit group
             const firstVarInGroup = varsInGroup[0];
