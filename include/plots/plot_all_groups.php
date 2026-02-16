@@ -120,7 +120,7 @@ FORM;
       $otherVars = array();
 
       foreach ($vars as $var) {
-        if (strpos($var, 'TS') === 0) {
+        if (preg_match('/^TS/i', $var)) {
           $tsVars[] = $var;
         } else {
           $otherVars[] = $var;

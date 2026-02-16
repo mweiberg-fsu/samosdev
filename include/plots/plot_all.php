@@ -7,6 +7,8 @@
 function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 'All Variable Groups')
 {
   global $file_history_id, $order, $ship, $date, $ship_id, $SERVER;
+  $debugPlot = isset($_REQUEST['debug_plot']) && $_REQUEST['debug_plot'] == '1';
+  $debugRows = array();
   
   echo "<h2 style='text-align:center; color:#2c3e50; margin:20px 0;'>$title</h2>";
   echo '<style>
@@ -32,7 +34,12 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     // Build all URLs first
     $urlMap = array();
     foreach ($groupVars as $var) {
-      if (!isset($allVars[$var])) continue;
+      if (!isset($allVars[$var])) {
+        if ($debugPlot) {
+          $debugRows[] = array('group' => $groupName, 'var' => $var, 'status' => 'skipped', 'reason' => 'not_in_allVars');
+        }
+        continue;
+      }
       $info = $allVars[$var];
       $ver = $info['ver'];
 
@@ -122,26 +129,44 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     
     // Process results
     foreach ($groupVars as $var) {
-      if (!isset($results[$var])) continue;
+      if (!isset($results[$var])) {
+        if ($debugPlot) {
+          $debugRows[] = array('group' => $groupName, 'var' => $var, 'status' => 'skipped', 'reason' => 'no_curl_result');
+        }
+        continue;
+      }
       
       $jsonData = $results[$var]['data'];
       $jsonFlags = $results[$var]['flags'];
       
-      if ($jsonData === false || $jsonFlags === false) continue;
+      if ($jsonData === false || $jsonFlags === false) {
+        if ($debugPlot) {
+          $debugRows[] = array('group' => $groupName, 'var' => $var, 'status' => 'skipped', 'reason' => 'curl_false_data_or_flags');
+        }
+        continue;
+      }
 
       $values = json_decode($jsonData, true);
       $flags_raw = json_decode($jsonFlags, true);
-      if (!is_array($values) || !is_array($flags_raw)) continue;
+      if (!is_array($values) || !is_array($flags_raw)) {
+        if ($debugPlot) {
+          $debugRows[] = array('group' => $groupName, 'var' => $var, 'status' => 'skipped', 'reason' => 'invalid_json', 'data_preview' => substr((string) $jsonData, 0, 100));
+        }
+        continue;
+      }
 
       $flag_by_index = array_values($flags_raw);
       $points = array();
       $flag_index = 0;
+      $rawCount = count($values);
+      $timeFiltered = 0;
+      $nullFiltered = 0;
 
       foreach ($values as $ts => $val) {
         $timePart = substr($ts, 11, 5);
-        if ($filterStart && $timePart < $filterStart) { $flag_index++; continue; }
-        if ($filterEnd && $timePart > $filterEnd) { $flag_index++; continue; }
-        if ($val === null || $val === '') { $flag_index++; continue; }
+        if ($filterStart && $timePart < $filterStart) { $timeFiltered++; $flag_index++; continue; }
+        if ($filterEnd && $timePart > $filterEnd) { $timeFiltered++; $flag_index++; continue; }
+        if ($val === null || $val === '') { $nullFiltered++; $flag_index++; continue; }
 
         // Use Z flag if available, otherwise use flag from endpoint
         $flag = isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' ';
@@ -159,6 +184,29 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
 
       if (!empty($points)) {
         $plotData[$var] = array('points' => $points);
+        if ($debugPlot) {
+          $debugRows[] = array(
+            'group' => $groupName,
+            'var' => $var,
+            'status' => 'plotted',
+            'reason' => 'ok',
+            'raw' => $rawCount,
+            'time_filtered' => $timeFiltered,
+            'null_filtered' => $nullFiltered,
+            'plotted_points' => count($points)
+          );
+        }
+      } elseif ($debugPlot) {
+        $debugRows[] = array(
+          'group' => $groupName,
+          'var' => $var,
+          'status' => 'skipped',
+          'reason' => 'no_points_after_filters',
+          'raw' => $rawCount,
+          'time_filtered' => $timeFiltered,
+          'null_filtered' => $nullFiltered,
+          'plotted_points' => 0
+        );
       }
     }
     
@@ -257,6 +305,38 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
   
   if ($plotIndex == 0) {
     echo "<p style='text-align:center; color:#e74c3c;'>No data found for any variable groups.</p>";
+  }
+
+  if ($debugPlot) {
+    echo "<div style='width:95%; margin:20px auto; border:1px solid #ccc; padding:10px; background:#fafafa;'>";
+    echo "<h3 style='margin:0 0 10px; color:#2c3e50;'>Plot-All Debug (debug_plot=1)</h3>";
+    echo "<table style='width:100%; border-collapse:collapse; font-size:12px;'>";
+    echo "<tr style='background:#eee;'>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Group</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Variable</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Status</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Reason</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Raw</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Time filtered</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Null filtered</th>";
+    echo "<th style='border:1px solid #ccc; padding:4px;'>Plotted</th>";
+    echo "</tr>";
+
+    foreach ($debugRows as $row) {
+      $statusColor = ($row['status'] === 'plotted') ? '#e8f7e8' : '#fdecec';
+      echo "<tr style='background:$statusColor;'>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['group']) . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['var']) . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['status']) . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['reason']) . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . (isset($row['raw']) ? (int) $row['raw'] : '') . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . (isset($row['time_filtered']) ? (int) $row['time_filtered'] : '') . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . (isset($row['null_filtered']) ? (int) $row['null_filtered'] : '') . "</td>";
+      echo "<td style='border:1px solid #ccc; padding:4px;'>" . (isset($row['plotted_points']) ? (int) $row['plotted_points'] : '') . "</td>";
+      echo "</tr>";
+    }
+
+    echo "</table></div>";
   }
   
   // Include required JS files
