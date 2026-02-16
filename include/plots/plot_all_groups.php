@@ -40,6 +40,12 @@ function InsertPlotAllGroups()
     $availableVars[] = $r->variable_name;
   }
 
+  $variableOptions = '';
+  foreach ($availableVars as $varName) {
+    $safeVarName = htmlspecialchars($varName, ENT_QUOTES, 'UTF-8');
+    $variableOptions .= "<option value=\"$safeVarName\">$safeVarName</option>";
+  }
+
   /* ---------- 2. SIMPLE FORM ---------- */
   $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=10";
 
@@ -65,6 +71,15 @@ function InsertPlotAllGroups()
           onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
           Plot All Groups
         </button>
+      </td>
+    </tr>
+    <tr>
+      <th>Variables</th>
+      <td>
+        <select multiple size="8" disabled style="width:280px; background:#f7f7f7; color:#555; cursor:not-allowed;">
+          $variableOptions
+        </select>
+        <span style="color:#888; font-size:11px; margin-left:8px;">Display only</span>
       </td>
     </tr>
   </table>
