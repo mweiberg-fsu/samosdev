@@ -149,8 +149,8 @@
         const axisSpacing = 72;
         const baseMargin = 55; // Base margin for axis labels
         
-        const dynamicLeftMargin = baseMargin + (numLeftAxes > 0 ? (numLeftAxes - 1) * axisSpacing + 70 : 0);
-        const dynamicRightMargin = baseMargin + (numRightAxes > 0 ? (numRightAxes - 1) * axisSpacing + 70 : 0);
+        const dynamicLeftMargin = baseMargin + (numLeftAxes > 1 ? (numLeftAxes - 1) * axisSpacing + 70 : 0);
+        const dynamicRightMargin = baseMargin + (numRightAxes > 1 ? (numRightAxes - 1) * axisSpacing + 70 : 0);
         
         const margin = { 
             top: Math.max(70, dynamicTopMargin), 
