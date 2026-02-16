@@ -40,7 +40,8 @@
             shipName = '',       // Full ship name
             date = '',           // Date (YYYYMMDD format)
             hs = '00:00',        // Start time
-            he = '23:59'         // End time
+            he = '23:59',        // End time
+            chartHeight = 520    // Optional chart height override
         } = payload;
 
         if (!data || Object.keys(data).length === 0) return;
@@ -158,8 +159,9 @@
             bottom: 70, 
             left: Math.max(70, dynamicLeftMargin) 
         };
+        const outerChartHeight = Number(chartHeight) > 300 ? Number(chartHeight) : 520;
         const width = 790 - margin.left - margin.right;
-        const height = 520 - margin.top - margin.bottom;
+        const height = outerChartHeight - margin.top - margin.bottom;
 
         const x = d3.scaleTime()
             .domain(d3.extent(allValidPoints, d => parseTime(d.date)))

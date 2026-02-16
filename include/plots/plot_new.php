@@ -294,7 +294,8 @@ FORM;
       'order' => $order,
       'hs' => $hs,
       'he' => $he,
-      'showTitle' => true
+      'showTitle' => true,
+      'chartHeight' => 360
     ));
 
     echo '<div class="plot-menu-wrap">';
@@ -307,7 +308,7 @@ FORM;
     echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
     echo '    </div>';
     echo '  </details>';
-    echo '  <div id="' . $chartId . '" style="width:100%; min-height:520px;"></div>';
+    echo '  <div id="' . $chartId . '" style="width:100%; min-height:360px;"></div>';
     echo '</div>';
 
     echo "<script>
