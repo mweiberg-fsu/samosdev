@@ -53,6 +53,15 @@ function InsertPlotAllGroups()
 <form method="POST" action="$actionUrl" id="plotAllGroupsForm">
   <table class="search" style="margin:20px auto; width:790px; border-collapse:collapse;">
     <tr>
+      <th>Variables</th>
+      <td>
+        <select multiple size="8" disabled style="width:280px; background:#f7f7f7; color:#555; cursor:not-allowed;">
+          $variableOptions
+        </select>
+        <span style="color:#888; font-size:11px; margin-left:8px;">Display only</span>
+      </td>
+    </tr>
+    <tr>
       <th style="width:180px;">Time Range</th>
       <td>
         From: <input type="text" name="hs" id="hs" value="$hs" size="5" maxlength="5" 
@@ -71,15 +80,6 @@ function InsertPlotAllGroups()
           onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
           Plot All Groups
         </button>
-      </td>
-    </tr>
-    <tr>
-      <th>Variables</th>
-      <td>
-        <select multiple size="8" disabled style="width:280px; background:#f7f7f7; color:#555; cursor:not-allowed;">
-          $variableOptions
-        </select>
-        <span style="color:#888; font-size:11px; margin-left:8px;">Display only</span>
       </td>
     </tr>
   </table>
