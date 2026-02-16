@@ -211,6 +211,46 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     }
     
     if (empty($plotData)) continue;
+
+    if ($debugPlot) {
+      $seriesBySignature = array();
+      foreach ($plotData as $varName => $series) {
+        $pointsForSig = isset($series['points']) && is_array($series['points']) ? $series['points'] : array();
+        $sigSource = array();
+        foreach ($pointsForSig as $p) {
+          $sigSource[] = array(
+            'date' => isset($p['date']) ? $p['date'] : null,
+            'value' => isset($p['value']) ? $p['value'] : null,
+          );
+        }
+        $signature = md5(json_encode($sigSource));
+        if (!isset($seriesBySignature[$signature])) {
+          $seriesBySignature[$signature] = array();
+        }
+        $seriesBySignature[$signature][] = $varName;
+      }
+
+      foreach ($seriesBySignature as $sameSeriesVars) {
+        if (count($sameSeriesVars) > 1) {
+          $sameList = implode(', ', $sameSeriesVars);
+          foreach ($sameSeriesVars as $v) {
+            $others = array_values(array_filter($sameSeriesVars, function ($x) use ($v) {
+              return $x !== $v;
+            }));
+            $debugRows[] = array(
+              'group' => $groupName,
+              'var' => $v,
+              'status' => 'info',
+              'reason' => 'overlaps_exactly_with: ' . implode(', ', $others),
+              'raw' => '',
+              'time_filtered' => '',
+              'null_filtered' => '',
+              'plotted_points' => count($plotData[$v]['points'])
+            );
+          }
+        }
+      }
+    }
     
     // Build units and longNames for this group
     $unitsMap = array();
@@ -323,7 +363,12 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     echo "</tr>";
 
     foreach ($debugRows as $row) {
-      $statusColor = ($row['status'] === 'plotted') ? '#e8f7e8' : '#fdecec';
+      $statusColor = '#fdecec';
+      if ($row['status'] === 'plotted') {
+        $statusColor = '#e8f7e8';
+      } elseif ($row['status'] === 'info') {
+        $statusColor = '#eef4ff';
+      }
       echo "<tr style='background:$statusColor;'>";
       echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['group']) . "</td>";
       echo "<td style='border:1px solid #ccc; padding:4px;'>" . htmlspecialchars($row['var']) . "</td>";

@@ -303,6 +303,31 @@
             'L': '#40E0D0', 'M': '#006400', 'S': '#FF69B4'
         };
 
+        const lineStyleByVar = {};
+        const signatureToVars = {};
+        const overlapDashPatterns = ['8,4', '2,4', '10,4,2,4', '4,3,1,3'];
+
+        vars.forEach(v => {
+            const sig = (processedData[v] || [])
+                .map(p => `${p.date}|${p.value}`)
+                .join(';');
+            if (!signatureToVars[sig]) signatureToVars[sig] = [];
+            signatureToVars[sig].push(v);
+        });
+
+        Object.values(signatureToVars).forEach(groupVars => {
+            if (groupVars.length > 1) {
+                console.warn('Overlapping series detected (zoom modal):', groupVars);
+                groupVars.forEach((varName, idx) => {
+                    lineStyleByVar[varName] = {
+                        dash: overlapDashPatterns[idx % overlapDashPatterns.length],
+                        width: 2.5,
+                        opacity: 0.95
+                    };
+                });
+            }
+        });
+
         vars.forEach(v => {
             const yScale = yScales[v];
             const line = d3.line()
@@ -310,13 +335,17 @@
                 .y(d => yScale(d.value))
                 .defined(d => d.value != null);
 
+            const lineStyle = lineStyleByVar[v] || { dash: null, width: 2.5, opacity: 1 };
+
             // Visible line
             lineElements.push(
                 plotArea.append('path')
                     .datum(processedData[v])
                     .attr('fill', 'none')
                     .attr('stroke', color(v))
-                    .attr('stroke-width', 2.5)
+                    .attr('stroke-width', lineStyle.width)
+                    .attr('stroke-dasharray', lineStyle.dash)
+                    .style('opacity', lineStyle.opacity)
                     .attr('d', line)
             );
 

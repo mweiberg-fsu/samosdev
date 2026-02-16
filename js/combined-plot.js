@@ -408,6 +408,31 @@
 
         console.log(`Total flagged points (excluding Z): ${allFlaggedPoints.length}`);
 
+        const lineStyleByVar = {};
+        const signatureToVars = {};
+        const overlapDashPatterns = ['8,4', '2,4', '10,4,2,4', '4,3,1,3'];
+
+        vars.forEach(v => {
+            const sig = (processedData[v] || [])
+                .map(p => `${p.date}|${p.value}`)
+                .join(';');
+            if (!signatureToVars[sig]) signatureToVars[sig] = [];
+            signatureToVars[sig].push(v);
+        });
+
+        Object.values(signatureToVars).forEach(groupVars => {
+            if (groupVars.length > 1) {
+                console.warn('Overlapping series detected:', groupVars);
+                groupVars.forEach((varName, idx) => {
+                    lineStyleByVar[varName] = {
+                        dash: overlapDashPatterns[idx % overlapDashPatterns.length],
+                        width: 2.2,
+                        opacity: 0.95
+                    };
+                });
+            }
+        });
+
         const tip = initTooltip();
 
         // Draw lines + hover tooltip
@@ -421,12 +446,16 @@
                 .y(d => yScale(d.value))
                 .defined(d => d.value != null);
 
+            const lineStyle = lineStyleByVar[v] || { dash: null, width: 2, opacity: 1 };
+
             // Actual line
             svg.append('path')
                 .datum(points)
                 .attr('fill', 'none')
                 .attr('stroke', color(v))
-                .attr('stroke-width', 2)
+                .attr('stroke-width', lineStyle.width)
+                .attr('stroke-dasharray', lineStyle.dash)
+                .style('opacity', lineStyle.opacity)
                 .attr('d', lineGen);
 
             // Add flag circles on the line plot
