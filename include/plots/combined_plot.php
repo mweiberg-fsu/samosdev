@@ -148,7 +148,7 @@ function InsertCombinedPlot()
       <td>
         <button type="button" id="updatePlotBtn" style="padding:8px 25px; font-size:14px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
                 onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
-          Plot
+          Plot Combined
         </button>
       </td>
     </tr>

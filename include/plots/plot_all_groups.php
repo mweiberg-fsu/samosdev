@@ -61,8 +61,8 @@ function InsertPlotAllGroups()
     <tr>
       <th>Plot</th>
       <td>
-        <button type="button" id="plotAllGroupsBtn" style="padding:8px 25px; font-size:14px; background:#3498db; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
-                onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'">
+        <button type="button" id="plotAllGroupsBtn" style="padding:8px 25px; font-size:14px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;"
+          onmouseover="this.style.background='#219a52'" onmouseout="this.style.background='#27ae60'">
           Plot All Groups
         </button>
       </td>
