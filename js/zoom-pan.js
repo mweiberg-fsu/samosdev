@@ -2,13 +2,16 @@
 (function (global) {
     'use strict';
 
+    const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
+    const zoomSelectionState = global.__zoomSelectionState || (global.__zoomSelectionState = {});
+
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
         if (!str) return str;
         return str.replace(/Â°/g, '°').replace(/Â/g, '');
     }
 
-    global.openZoomModal = function () {
+    global.openZoomModal = function (chartId) {
         const modal = document.getElementById('zoomModal');
         const container = document.getElementById('zoomChartContainer');
         if (!modal || !container) return;
@@ -18,8 +21,12 @@
         
         container.innerHTML = '';
 
-        const payload = window.__originalChartData;
+        const payload = (chartId && window.__chartPayloads && window.__chartPayloads[chartId])
+            ? window.__chartPayloads[chartId]
+            : window.__originalChartData;
         if (!payload) return;
+
+        const zoomStateKey = chartId || payload.__chartId || '__default__';
 
         // Delay chart rendering to ensure layout is complete
         requestAnimationFrame(() => {
@@ -39,6 +46,16 @@
             he = '23:59'         // End time
         } = payload;
         const vars = Object.keys(data);
+        if (!zoomSelectionState[zoomStateKey] || !zoomSelectionState[zoomStateKey].size) {
+            const inheritedState = combinedSelectionState[zoomStateKey];
+            zoomSelectionState[zoomStateKey] = inheritedState && inheritedState.size
+                ? new Set(Array.from(inheritedState).filter(v => vars.includes(v)))
+                : new Set(vars);
+            if (!zoomSelectionState[zoomStateKey].size) {
+                zoomSelectionState[zoomStateKey] = new Set(vars);
+            }
+        }
+        const selectedVars = zoomSelectionState[zoomStateKey];
         
         // === CALCULATE LEGEND LINES FIRST (to determine top margin) ===
         const legendLineHeight = 22;
@@ -295,6 +312,9 @@
         // === DRAW LINES USING PER-VARIABLE Y SCALE ===
         const lineElements = [];
         const hoverPaths = [];
+        const lineByVar = {};
+        const hoverByVar = {};
+        const flagByVar = {};
 
         // Define flag colors
         const flagColors = {
@@ -338,16 +358,17 @@
             const lineStyle = lineStyleByVar[v] || { dash: null, width: 2.5, opacity: 1 };
 
             // Visible line
-            lineElements.push(
-                plotArea.append('path')
+                const visibleLine = plotArea.append('path')
                     .datum(processedData[v])
                     .attr('fill', 'none')
                     .attr('stroke', color(v))
                     .attr('stroke-width', lineStyle.width)
                     .attr('stroke-dasharray', lineStyle.dash)
                     .style('opacity', lineStyle.opacity)
-                    .attr('d', line)
-            );
+                    .attr('d', line);
+
+                lineElements.push(visibleLine);
+                lineByVar[v] = visibleLine;
 
             // Add flag circles on the line plot
             const flaggedPointsForVar = processedData[v].filter(p => {
@@ -355,7 +376,9 @@
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
 
-            plotArea.selectAll(`.flag-circle-${v}`)
+            flagByVar[v] = plotArea.append('g')
+                .attr('class', `flag-group-${v}`)
+                .selectAll(`.flag-circle-${v}`)
                 .data(flaggedPointsForVar)
                 .enter()
                 .append('circle')
@@ -379,21 +402,23 @@
                 });
 
             // Hover fat line
-            hoverPaths.push(
-                plotArea.append('path')
+            const hoverPath = plotArea.append('path')
                     .datum(processedData[v])
                     .attr('fill', 'none')
                     .attr('stroke', 'transparent')
                     .attr('stroke-width', 20)
                     .attr('d', line)
-                    .style('cursor', 'crosshair')
-            );
+                    .style('cursor', 'crosshair');
+
+            hoverPaths.push(hoverPath);
+            hoverByVar[v] = hoverPath;
         });
 
         // === DRAW MULTIPLE Y-AXES - evenly distributed left/right ===
         let leftAxisCount = 0;
         let rightAxisCount = 0;
         
+        const axisByUnit = {};
         uniqueUnits.slice(0, numAxes).forEach((unit, idx) => {
             const varsInGroup = unitGroups[unit];
             const scale = yScales[varsInGroup[0]];
@@ -452,7 +477,7 @@
                 : axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
 
             // Y-axis label
-            g.append('text')
+            const axisLabel = g.append('text')
                 .attr('transform', 'rotate(-90)')
                 .attr('y', labelOffset)
                 .attr('x', -height / 2)
@@ -463,6 +488,8 @@
                 .style('font-weight', 'bold')
                 .style('fill', axisColor)
                 .text(unit);
+
+            axisByUnit[unit] = { axisGroup, axisLabel, vars: varsInGroup };
         });
 
         // X Axis
@@ -608,6 +635,35 @@
             .on('mouseout', () => hoverTooltip.style('opacity', 0));
         });
 
+        const applyVisibility = () => {
+            vars.forEach(v => {
+                const isVisible = selectedVars.has(v);
+                if (lineByVar[v]) lineByVar[v].style('display', isVisible ? null : 'none');
+                if (hoverByVar[v]) {
+                    hoverByVar[v]
+                        .style('display', isVisible ? null : 'none')
+                        .style('pointer-events', isVisible ? 'stroke' : 'none');
+                }
+                if (flagByVar[v]) flagByVar[v].style('display', isVisible ? null : 'none');
+            });
+
+            Object.keys(axisByUnit).forEach(unit => {
+                const axisInfo = axisByUnit[unit];
+                const hasVisibleVar = axisInfo.vars.some(v => selectedVars.has(v));
+                axisInfo.axisGroup.style('display', hasVisibleVar ? null : 'none');
+                axisInfo.axisLabel.style('display', hasVisibleVar ? null : 'none');
+            });
+
+            legendItems.forEach(item => {
+                const isVisible = selectedVars.has(item.v);
+                if (item.legendItem) {
+                    item.legendItem.style('opacity', isVisible ? 1 : 0.35);
+                }
+            });
+
+            zoomSelectionState[zoomStateKey] = new Set(selectedVars);
+        };
+
         // Reset button
         const resetBtn = document.getElementById('resetZoomBtn');
         if (resetBtn) {
@@ -668,9 +724,28 @@
                     .style('fill', item.col)
                     .text(item.displayName);
 
+                legendItem
+                    .style('cursor', 'pointer')
+                    .attr('data-var', item.v)
+                    .on('click', () => {
+                        if (selectedVars.has(item.v)) {
+                            if (selectedVars.size === 1) {
+                                return;
+                            }
+                            selectedVars.delete(item.v);
+                        } else {
+                            selectedVars.add(item.v);
+                        }
+                        applyVisibility();
+                    });
+
+                item.legendItem = legendItem;
+
                 xPos += item.itemWidth + itemSpacing;
             });
         });
+
+        applyVisibility();
         } // Close renderChart function
     };
 

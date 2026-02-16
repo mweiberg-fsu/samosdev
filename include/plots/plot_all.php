@@ -328,7 +328,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
       function openZoomModal_$plotIndex() {
         window.__originalChartData = window.__chartPayloads['$chartId'];
         if (typeof openZoomModal === 'function') {
-          openZoomModal();
+          openZoomModal('$chartId');
         }
       }
 

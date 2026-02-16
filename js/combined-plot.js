@@ -3,6 +3,7 @@
     'use strict';
 
     let tooltip = null;
+    const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
 
     function initTooltip() {
         if (tooltip) return tooltip;
@@ -45,6 +46,11 @@
         if (!data || Object.keys(data).length === 0) return;
 
         const vars = Object.keys(data);
+        const stateKey = chartId || '__default__';
+        if (!combinedSelectionState[stateKey] || !combinedSelectionState[stateKey].size) {
+            combinedSelectionState[stateKey] = new Set(vars);
+        }
+        const selectedVars = combinedSelectionState[stateKey];
         
         // === CALCULATE LEGEND LINES FIRST (to determine top margin) ===
         const showTitle = payload.showTitle !== false;
@@ -293,6 +299,7 @@
         let leftAxisCount = 0;
         let rightAxisCount = 0;
         
+        const axisByUnit = {};
         uniqueUnits.slice(0, numAxes).forEach((unit, idx) => {
             const varsInGroup = unitGroups[unit];
             const scale = yScales[varsInGroup[0]];
@@ -351,9 +358,9 @@
                 : axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
 
             // Y-axis label: show units (cleaned), not variable long name
-            const axisLabel = unit ? String(unit).split(' (')[0] : '';
-            
-            svg.append('text')
+            const axisLabelText = unit ? String(unit).split(' (')[0] : '';
+
+            const axisLabel = svg.append('text')
                 .attr('transform', 'rotate(-90)')
                 .attr('y', labelOffset)
                 .attr('x', -height / 2)
@@ -363,7 +370,9 @@
                 .style('font-size', '15px')
                 .style('font-weight', 'bold')
                 .style('fill', axisColor)
-                .text(axisLabel);
+                .text(axisLabelText);
+
+            axisByUnit[unit] = { axisGroup, axisLabel, vars: varsInGroup };
         });
 
         // X-Axis
@@ -436,6 +445,10 @@
         const tip = initTooltip();
 
         // Draw lines + hover tooltip
+        const lineByVar = {};
+        const hoverByVar = {};
+        const flagByVar = {};
+
         vars.forEach(v => {
             const points = processedData[v] || [];
             const yScale = yScales[v]; // Get the correct scale for this variable
@@ -449,7 +462,7 @@
             const lineStyle = lineStyleByVar[v] || { dash: null, width: 2, opacity: 1 };
 
             // Actual line
-            svg.append('path')
+            lineByVar[v] = svg.append('path')
                 .datum(points)
                 .attr('fill', 'none')
                 .attr('stroke', color(v))
@@ -464,7 +477,9 @@
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
 
-            svg.selectAll(`.flag-circle-${v}`)
+            flagByVar[v] = svg.append('g')
+                .attr('class', `flag-group-${v}`)
+                .selectAll(`.flag-circle-${v}`)
                 .data(flaggedPointsForVar)
                 .enter()
                 .append('circle')
@@ -488,7 +503,7 @@
                 });
 
             // Invisible fat line for easier hovering
-            svg.append('path')
+            hoverByVar[v] = svg.append('path')
                 .datum(points)
                 .attr('fill', 'none')
                 .attr('stroke', 'transparent')
@@ -593,9 +608,56 @@
                     .style('fill', item.col)
                     .text(item.displayName);
 
+                legendItem
+                    .style('cursor', 'pointer')
+                    .attr('data-var', item.v)
+                    .on('click', () => {
+                        if (selectedVars.has(item.v)) {
+                            if (selectedVars.size === 1) {
+                                return;
+                            }
+                            selectedVars.delete(item.v);
+                        } else {
+                            selectedVars.add(item.v);
+                        }
+                        combinedSelectionState[stateKey] = new Set(selectedVars);
+                        applyVisibility();
+                    });
+
+                item.legendItem = legendItem;
+
                 xPos += item.itemWidth + itemSpacing;
             });
         });
+
+        const applyVisibility = () => {
+            vars.forEach(v => {
+                const isVisible = selectedVars.has(v);
+                if (lineByVar[v]) lineByVar[v].style('display', isVisible ? null : 'none');
+                if (hoverByVar[v]) {
+                    hoverByVar[v]
+                        .style('display', isVisible ? null : 'none')
+                        .style('pointer-events', isVisible ? 'stroke' : 'none');
+                }
+                if (flagByVar[v]) flagByVar[v].style('display', isVisible ? null : 'none');
+            });
+
+            Object.keys(axisByUnit).forEach(unit => {
+                const axisInfo = axisByUnit[unit];
+                const hasVisibleVar = axisInfo.vars.some(v => selectedVars.has(v));
+                axisInfo.axisGroup.style('display', hasVisibleVar ? null : 'none');
+                axisInfo.axisLabel.style('display', hasVisibleVar ? null : 'none');
+            });
+
+            legendItems.forEach(item => {
+                const isVisible = selectedVars.has(item.v);
+                if (item.legendItem) {
+                    item.legendItem.style('opacity', isVisible ? 1 : 0.35);
+                }
+            });
+        };
+
+        applyVisibility();
 
         window.__originalChartData = payload;
     };
