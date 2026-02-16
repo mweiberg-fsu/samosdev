@@ -417,7 +417,7 @@
             }, 0);
 
             const tickPaddingFromAxis = 10;
-            const axisLabelGap = 5;
+            const axisLabelGap = 15;
             const labelOffset = isLeft
                 ? axisOffset - maxTickLabelWidth - tickPaddingFromAxis - axisLabelGap
                 : axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
