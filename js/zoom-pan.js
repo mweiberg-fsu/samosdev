@@ -439,12 +439,18 @@
             if (minutesSpan <= 30) tickInterval = d3.timeMinute.every(2);
             else if (minutesSpan <= 120) tickInterval = d3.timeMinute.every(5);
 
+            const targetLabelSpacing = width < 700 ? 95 : 80;
+            const maxTickLabels = Math.max(2, Math.floor(width / targetLabelSpacing));
+            const candidateTicks = scale.ticks(tickInterval);
+            const visibleTickCount = Math.max(2, Math.min(maxTickLabels, candidateTicks.length));
+
             xAxisGroup.call(d3.axisBottom(scale)
-                .ticks(tickInterval)
+                .ticks(visibleTickCount)
                 .tickFormat(d3.timeFormat('%H:%M'))
             );
 
             xAxisGroup.selectAll('text')
+                .style('font-size', width < 700 ? '11px' : '12px')
                 .style('text-anchor', 'end')
                 .attr('dx', '-0.8em')
                 .attr('dy', '0.15em')
