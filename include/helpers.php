@@ -81,10 +81,14 @@ function GetVariableTitle($varName)
     'SST' => 'Sea Temperature',
     
     'TD' => 'Dew Point',
+    'TW' => 'Wet Bulb',
+    'WB' => 'Wet Bulb',
     
     'E' => 'Vapor Pressure',
     
     'PRECIP' => 'Precipitation Accumulation',
+    'RRATE' => 'Rain Rate',
+    'R_RATE' => 'Rain Rate',
     
     'RAD_SW' => 'Shortwave Radiation',
     'RAD_LW' => 'Longwave Radiation',
