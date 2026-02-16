@@ -345,14 +345,13 @@
             }, 0);
 
             const tickPaddingFromAxis = 10;
-            const axisLabelGap = 15;
+            const axisLabelGap = 20;
             const labelOffset = isLeft
                 ? axisOffset - maxTickLabelWidth - tickPaddingFromAxis - axisLabelGap
                 : axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
 
-            // Y-axis label - use longName from the first variable in this unit group
-            const firstVarInGroup = varsInGroup[0];
-            const axisLabel = longNames[firstVarInGroup] || unit;
+            // Y-axis label: show units (cleaned), not variable long name
+            const axisLabel = unit ? String(unit).split(' (')[0] : '';
             
             svg.append('text')
                 .attr('transform', 'rotate(-90)')
