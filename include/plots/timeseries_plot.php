@@ -303,8 +303,29 @@ function InsertTimeSeriesPlot($link, $str_ship, $flags_arr, $num_of_plots, $plot
         console.log("flags_arr:");
         console.log(flags_arr);
 
+        var debugVarName = (title || '').trim();
+        var shouldDebugSci = (debugVarName === 'PL_SPD' || debugVarName === 'PL_SPD2');
+
         //Read the data
         d3.json(url_link, function (error, data) {
+          if (shouldDebugSci) {
+            var rawKeys = Object.keys(data || {});
+            var rawSamples = rawKeys.slice(0, 8).map(function (k) {
+              var rawVal = data[k];
+              return {
+                timestamp: k,
+                raw: rawVal,
+                type: typeof rawVal,
+                hasExponent: /[eEdD][+-]?\d+/.test(String(rawVal))
+              };
+            });
+            console.log('[PLOT DEBUG][mode6] raw endpoint samples', {
+              var: debugVarName,
+              url: url_link,
+              samples: rawSamples
+            });
+          }
+
           node = d3.entries(data);
           var i = 0;
 
@@ -313,6 +334,22 @@ function InsertTimeSeriesPlot($link, $str_ship, $flags_arr, $num_of_plots, $plot
             d.flag = flags_arr[i];
             i++;
           });
+
+          if (shouldDebugSci) {
+            var parsedSamples = node.slice(0, 8).map(function (d) {
+              return {
+                timestamp: d.key,
+                parsedDate: d.date,
+                value: d.value,
+                valueType: typeof d.value,
+                hasExponent: /[eEdD][+-]?\d+/.test(String(d.value))
+              };
+            });
+            console.log('[PLOT DEBUG][mode6] parsed plot samples', {
+              var: debugVarName,
+              samples: parsedSamples
+            });
+          }
 
           // need for ranges
           value_array = d3.values(data);

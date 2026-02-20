@@ -27,6 +27,60 @@
         return tooltip;
     }
 
+    function formatCsvValue(rawValue, debugMeta) {
+        if (rawValue == null || rawValue === '') return '';
+
+        if (typeof rawValue === 'number') {
+            return Number.isFinite(rawValue) ? String(rawValue) : '';
+        }
+
+        const value = String(rawValue).trim();
+        if (!value) return '';
+
+        const strictSci = value.match(/^[+-]?(?:\d+\.?\d*|\.\d+)[eEdD][+-]?\d+$/);
+        if (strictSci) {
+            const normalized = value.replace(/[dD]/, 'e');
+            if (debugMeta && debugMeta.enabled) {
+                console.log('[CSV DEBUG][combined]', {
+                    var: debugMeta.varName,
+                    timestamp: debugMeta.timestamp,
+                    raw: rawValue,
+                    normalized,
+                    reason: 'strict_scientific_notation'
+                });
+            }
+            return normalized;
+        }
+
+        const relaxedSci = value.match(/^([+-]?(?:\d+\.?\d*|\.\d+))[eEdD]([+-]?\d+)/);
+        if (relaxedSci) {
+            const normalized = `${relaxedSci[1]}e${relaxedSci[2]}`;
+            if (debugMeta && debugMeta.enabled) {
+                console.log('[CSV DEBUG][combined]', {
+                    var: debugMeta.varName,
+                    timestamp: debugMeta.timestamp,
+                    raw: rawValue,
+                    normalized,
+                    reason: 'relaxed_scientific_notation'
+                });
+            }
+            return normalized;
+        }
+
+        const asNumber = Number(value);
+        const normalized = Number.isFinite(asNumber) ? String(asNumber) : value;
+        if (debugMeta && debugMeta.enabled) {
+            console.log('[CSV DEBUG][combined]', {
+                var: debugMeta.varName,
+                timestamp: debugMeta.timestamp,
+                raw: rawValue,
+                normalized,
+                reason: Number.isFinite(asNumber) ? 'numeric_coercion' : 'passthrough'
+            });
+        }
+        return normalized;
+    }
+
     global.renderCombinedPlot = function (payload, chartId) {
 
         console.log('Full payload:', payload);
@@ -741,6 +795,20 @@
         const { plotData, units: unitsMap = {}, longNames = {} } = payload;
         const vars = Object.keys(plotData || {});
         if (vars.length === 0) return;
+        const debugVars = new Set(['PL_SPD', 'PL_SPD2']);
+        const debugVarsPresent = vars.filter(v => debugVars.has(v));
+
+        if (debugVarsPresent.length) {
+            debugVarsPresent.forEach(v => {
+                const samples = (plotData[v]?.points || []).slice(0, 6).map(p => ({
+                    timestamp: p.date,
+                    raw: p.value,
+                    type: typeof p.value,
+                    hasExponent: /[eEdD][+-]?\d+/.test(String(p.value))
+                }));
+                console.log('[CSV DEBUG][combined] raw payload samples', { var: v, samples });
+            });
+        }
 
         // Collect all unique timestamps
         const allTimestamps = new Set();
@@ -772,7 +840,11 @@
                     const flagValue = point.flag && point.flag.trim() !== '' && point.flag.trim() !== ' '
                         ? point.flag.trim()
                         : 'Z';
-                    csv += ',' + (point.value !== null ? point.value : '');
+                    csv += ',' + formatCsvValue(point.value, {
+                        enabled: debugVars.has(v),
+                        varName: v,
+                        timestamp: ts
+                    });
                     csv += ',' + flagValue;
                 } else {
                     csv += ',,';
