@@ -81,6 +81,9 @@
         if (!payload) return;
 
         const zoomStateKey = chartId || payload.__chartId || '__default__';
+        window.__activeZoomStateKey = zoomStateKey;
+        window.__activeZoomChartId = chartId || payload.__chartId || null;
+        window.__activeZoomPayload = payload;
 
         // Delay chart rendering to ensure layout is complete
         requestAnimationFrame(() => {
@@ -853,11 +856,16 @@
     };
 
     global.downloadZoomCSV = function () {
-        const payload = window.__originalChartData;
+        const payload = window.__activeZoomPayload || window.__originalChartData;
         if (!payload) return;
 
         const { plotData, units: unitsMap = {}, longNames = {} } = payload;
-        const vars = Object.keys(plotData);
+        const allVars = Object.keys(plotData || {});
+        const activeZoomKey = window.__activeZoomStateKey || payload.__chartId || '__default__';
+        const selectedVars = zoomSelectionState[activeZoomKey] || combinedSelectionState[activeZoomKey] || null;
+        const vars = (selectedVars && selectedVars.size)
+            ? allVars.filter(v => selectedVars.has(v))
+            : allVars;
         const debugVars = new Set(['PL_SPD', 'PL_SPD2']);
         const debugVarsPresent = vars.filter(v => debugVars.has(v));
 
@@ -991,7 +999,7 @@
             // Convert to PNG and download
             canvas.toBlob(function (blob) {
                 // Build filename with ship, date, time
-                const payload = window.__originalChartData || {};
+                const payload = window.__activeZoomPayload || window.__originalChartData || {};
                 const shipName = (payload.shipName || payload.ship || 'zoom-plot').replace(/[^a-zA-Z0-9]/g, '_');
                 const dateStr = payload.date ? payload.date.substring(0, 8) : new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const hsTime = (payload.hs || '00:00').replace(':', '');
