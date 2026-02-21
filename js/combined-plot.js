@@ -539,8 +539,10 @@
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
 
-            flagByVar[v] = svg.append('g')
-                .attr('class', `flag-group-${v}`)
+            const flagGroup = svg.append('g')
+                .attr('class', `flag-group-${v}`);
+
+            const flagCircles = flagGroup
                 .selectAll(`.flag-circle-${v}`)
                 .data(flaggedPointsForVar)
                 .enter()
@@ -556,13 +558,17 @@
                 .attr('stroke', '#000')
                 .attr('stroke-width', 1.5)
                 .style('opacity', 0.9)
-                .style('cursor', 'pointer')
+                .style('cursor', 'pointer');
+
+            flagCircles
                 .append('title')
                 .text(d => {
                     const flag = d.flag ? d.flag.trim() : '';
                     const timeStr = d3.timeFormat('%H:%M')(parseTime(d.date));
                     return `Flag: ${flag} at ${timeStr}`;
                 });
+
+            flagByVar[v] = flagGroup;
 
             // Invisible fat line for easier hovering
             hoverByVar[v] = svg.append('path')
