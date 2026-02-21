@@ -4,6 +4,8 @@
 
     let tooltip = null;
     const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
+    const combinedFlagsVisibleState = global.__combinedFlagsVisibleState || (global.__combinedFlagsVisibleState = {});
+    const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
 
     function initTooltip() {
         if (tooltip) return tooltip;
@@ -104,6 +106,9 @@
         const stateKey = chartId || '__default__';
         if (!combinedSelectionState[stateKey] || !combinedSelectionState[stateKey].size) {
             combinedSelectionState[stateKey] = new Set(vars);
+        }
+        if (typeof combinedFlagsVisibleState[stateKey] === 'undefined') {
+            combinedFlagsVisibleState[stateKey] = true;
         }
         const selectedVars = combinedSelectionState[stateKey];
         
@@ -688,6 +693,7 @@
         });
 
         const applyVisibility = () => {
+            const flagsVisible = combinedFlagsVisibleState[stateKey] !== false;
             vars.forEach(v => {
                 const isVisible = selectedVars.has(v);
                 if (lineByVar[v]) lineByVar[v].style('display', isVisible ? null : 'none');
@@ -696,7 +702,7 @@
                         .style('display', isVisible ? null : 'none')
                         .style('pointer-events', isVisible ? 'stroke' : 'none');
                 }
-                if (flagByVar[v]) flagByVar[v].style('display', isVisible ? null : 'none');
+                if (flagByVar[v]) flagByVar[v].style('display', (isVisible && flagsVisible) ? null : 'none');
             });
 
             Object.keys(axisByUnit).forEach(unit => {
@@ -716,7 +722,37 @@
 
         applyVisibility();
 
+        global.__applyCombinedVisibility = global.__applyCombinedVisibility || {};
+        global.__applyCombinedVisibility[stateKey] = applyVisibility;
+
         window.__originalChartData = payload;
+    };
+
+    global.togglePlotFlags = function (chartId, buttonElement) {
+        const stateKey = chartId || '__default__';
+        const current = combinedFlagsVisibleState[stateKey] !== false;
+        const next = !current;
+
+        combinedFlagsVisibleState[stateKey] = next;
+        zoomFlagsVisibleState[stateKey] = next;
+
+        if (global.__applyCombinedVisibility && typeof global.__applyCombinedVisibility[stateKey] === 'function') {
+            global.__applyCombinedVisibility[stateKey]();
+        }
+
+        const zoomModal = document.getElementById('zoomModal');
+        if (zoomModal && zoomModal.style.display !== 'none' && global.__activeZoomStateKey === stateKey) {
+            const zoomContainer = document.getElementById('zoomChartContainer');
+            if (zoomContainer) {
+                zoomContainer.querySelectorAll('[class^="flag-group-"]').forEach(node => {
+                    node.style.display = next ? '' : 'none';
+                });
+            }
+        }
+
+        if (buttonElement) {
+            buttonElement.textContent = next ? 'Hide Flags' : 'Show Flags';
+        }
     };
 
     // ----------------------------------------------------------------
@@ -793,7 +829,12 @@
         if (!payload) return;
 
         const { plotData, units: unitsMap = {}, longNames = {} } = payload;
-        const vars = Object.keys(plotData || {});
+        const allVars = Object.keys(plotData || {});
+        const stateKey = chartId || payload.__chartId || '__default__';
+        const selectedVars = combinedSelectionState[stateKey] || null;
+        const vars = (selectedVars && selectedVars.size)
+            ? allVars.filter(v => selectedVars.has(v))
+            : allVars;
         if (vars.length === 0) return;
         const debugVars = new Set(['PL_SPD', 'PL_SPD2']);
         const debugVarsPresent = vars.filter(v => debugVars.has(v));

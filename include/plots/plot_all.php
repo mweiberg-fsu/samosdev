@@ -302,6 +302,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     echo "      <button onclick=\"downloadCombinedCSV('$chartId')\">Download CSV</button>";
     echo "      <button onclick=\"openZoomModal_$plotIndex()\">Zoom & Pan</button>";
     echo "      <button onclick=\"openShipTrackModal()\">Ship Track</button>";
+    echo "      <button onclick=\"togglePlotFlags('$chartId', this)\">Hide Flags</button>";
     echo "    </div>";
     echo "  </details>";
     echo "  <div id=\"$chartId\" style=\"width:100%; height:520px; position:relative;\"></div>";

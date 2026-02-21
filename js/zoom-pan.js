@@ -4,6 +4,7 @@
 
     const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
     const zoomSelectionState = global.__zoomSelectionState || (global.__zoomSelectionState = {});
+    const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
 
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
@@ -84,6 +85,9 @@
         window.__activeZoomStateKey = zoomStateKey;
         window.__activeZoomChartId = chartId || payload.__chartId || null;
         window.__activeZoomPayload = payload;
+        if (typeof zoomFlagsVisibleState[zoomStateKey] === 'undefined') {
+            zoomFlagsVisibleState[zoomStateKey] = true;
+        }
 
         // Delay chart rendering to ensure layout is complete
         requestAnimationFrame(() => {
@@ -732,6 +736,7 @@
         });
 
         const applyVisibility = () => {
+            const flagsVisible = zoomFlagsVisibleState[zoomStateKey] !== false;
             vars.forEach(v => {
                 const isVisible = selectedVars.has(v);
                 if (lineByVar[v]) lineByVar[v].style('display', isVisible ? null : 'none');
@@ -740,7 +745,7 @@
                         .style('display', isVisible ? null : 'none')
                         .style('pointer-events', isVisible ? 'stroke' : 'none');
                 }
-                if (flagByVar[v]) flagByVar[v].style('display', isVisible ? null : 'none');
+                if (flagByVar[v]) flagByVar[v].style('display', (isVisible && flagsVisible) ? null : 'none');
             });
 
             Object.keys(axisByUnit).forEach(unit => {

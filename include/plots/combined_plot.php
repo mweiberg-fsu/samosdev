@@ -475,6 +475,7 @@ FORM;
   echo '      <button onclick="downloadCombinedCSV(\'combinedChart\')">Download CSV</button>';
   echo '      <button onclick="openZoomModal(\'combinedChart\')">Zoom & Pan</button>';
   echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
+  echo '      <button onclick="togglePlotFlags(\'combinedChart\', this)">Hide Flags</button>';
   echo '    </div>';
   echo '  </details>';
   echo '  <div id="combinedChart" style="width:100%; min-height:520px;"></div>';
