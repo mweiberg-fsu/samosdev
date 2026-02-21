@@ -266,12 +266,14 @@ FORM;
   
   db_query($groupQuery);
   $varsByOrder = array();
+  $orderValueByVar = array();
   
   if (db_error()) {
     echo '[]';
   } else {
     while ($varRow = db_get_row()) {
-      $orderValue = $varRow->order_value;
+      $orderValue = strtolower(trim((string)$varRow->order_value));
+      $orderValueByVar[$varRow->variable_name] = $orderValue;
       $groupPrefix = substr($orderValue, 0, 1);
       
       if (!isset($varsByOrder[$groupPrefix])) {
@@ -288,34 +290,63 @@ FORM;
       // It already handles all exact matches and numbered variants (SPD1, SPD2, etc.)
       $groupName = GetVariableTitle($firstVar);
       
-      // Special handling for 'q' flag: split TS variables from other q variables
+      // Special handling for 'q' prefix: split by 3-char order family
+      // qa* => Sea Temperature, qb* => Salinity, qc* => Conductivity
       if ($prefix === 'q') {
-        $tsVars = array();
-        $otherVars = array();
+        $seaTempVars = array();
+        $salinityVars = array();
+        $conductivityVars = array();
+        $otherQVars = array();
         
         foreach ($vars as $var) {
-          if (strpos($var, 'TS') === 0) {
-            $tsVars[] = $var;
+          $varOrder = isset($orderValueByVar[$var]) ? $orderValueByVar[$var] : '';
+
+          if (strpos($varOrder, 'qa') === 0) {
+            $seaTempVars[] = $var;
+          } elseif (strpos($varOrder, 'qb') === 0) {
+            $salinityVars[] = $var;
+          } elseif (strpos($varOrder, 'qc') === 0) {
+            $conductivityVars[] = $var;
+          } elseif (preg_match('/^TS/i', $var)) {
+            $seaTempVars[] = $var;
+          } elseif (preg_match('/^SSPS/i', $var)) {
+            $salinityVars[] = $var;
+          } elseif (preg_match('/^CNDC/i', $var)) {
+            $conductivityVars[] = $var;
           } else {
-            $otherVars[] = $var;
+            $otherQVars[] = $var;
           }
         }
         
-        // Add TS variables group if any exist
-        if (!empty($tsVars)) {
+        if (!empty($seaTempVars)) {
           array_push($jsGroups, array(
             'name' => 'Sea Temperature',
-            'prefix' => 'q_ts',
-            'vars' => $tsVars
+            'prefix' => 'q_qa',
+            'vars' => $seaTempVars
           ));
         }
         
-        // Add other 'q' variables group if any exist
-        if (!empty($otherVars)) {
+        if (!empty($salinityVars)) {
           array_push($jsGroups, array(
-            'name' => 'Salinity & Conductivity',
+            'name' => 'Salinity',
+            'prefix' => 'q_qb',
+            'vars' => $salinityVars
+          ));
+        }
+
+        if (!empty($conductivityVars)) {
+          array_push($jsGroups, array(
+            'name' => 'Conductivity',
+            'prefix' => 'q_qc',
+            'vars' => $conductivityVars
+          ));
+        }
+
+        if (!empty($otherQVars)) {
+          array_push($jsGroups, array(
+            'name' => GetVariableTitle($otherQVars[0]),
             'prefix' => 'q_other',
-            'vars' => $otherVars
+            'vars' => $otherQVars
           ));
         }
       }
