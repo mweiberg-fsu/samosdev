@@ -179,12 +179,17 @@
 
         vars.forEach(v => {
             const points = (data[v]?.points || [])
-                .map(p => ({
-                    date: p.date,
-                    value: p.value == null ? null : Number(p.value),
-                    flag: p.flag || ' '
-                }))
-                .filter(p => p.value != null && !isNaN(p.value));
+                .map(p => {
+                    const dateObj = parseTime(p.date);
+                    return {
+                        date: p.date,
+                        dateObj,
+                        ts: dateObj ? dateObj.getTime() : NaN,
+                        value: p.value == null ? null : Number(p.value),
+                        flag: p.flag || ' '
+                    };
+                })
+                .filter(p => p.value != null && !isNaN(p.value) && p.dateObj && Number.isFinite(p.ts));
 
             processedData[v] = points;
             allValidPoints.push(...points);
@@ -231,7 +236,7 @@
 
         // Base X scale
         const baseX = d3.scaleTime()
-            .domain(d3.extent(allValidPoints, d => parseTime(d.date)))
+            .domain(d3.extent(allValidPoints, d => d.dateObj))
             .range([0, width]);
 
         const yScales = {};  // yScales[v] for each variable
@@ -369,6 +374,7 @@
         const lineByVar = {};
         const hoverByVar = {};
         const flagByVar = {};
+        const flagCirclesByVar = {};
 
         // Define flag colors
         const flagColors = {
@@ -405,7 +411,7 @@
         vars.forEach(v => {
             const yScale = yScales[v];
             const line = d3.line()
-                .x(d => baseX(parseTime(d.date)))
+                .x(d => baseX(d.dateObj))
                 .y(d => yScale(d.value))
                 .defined(d => d.value != null);
 
@@ -430,14 +436,16 @@
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
 
-            flagByVar[v] = plotArea.append('g')
-                .attr('class', `flag-group-${v}`)
+            const flagGroup = plotArea.append('g')
+                .attr('class', `flag-group-${v}`);
+
+            const flagCircles = flagGroup
                 .selectAll(`.flag-circle-${v}`)
                 .data(flaggedPointsForVar)
                 .enter()
                 .append('circle')
                 .attr('class', `flag-circle flag-circle-${v}`)
-                .attr('cx', d => baseX(parseTime(d.date)))
+                .attr('cx', d => baseX(d.dateObj))
                 .attr('cy', d => yScale(d.value))
                 .attr('r', 4)
                 .attr('fill', d => {
@@ -447,13 +455,18 @@
                 .attr('stroke', '#000')
                 .attr('stroke-width', 1.5)
                 .style('opacity', 0.9)
-                .style('cursor', 'pointer')
+                .style('cursor', 'pointer');
+
+            flagCircles
                 .append('title')
                 .text(d => {
                     const flag = d.flag ? d.flag.trim() : '';
-                    const timeStr = d3.timeFormat('%H:%M')(parseTime(d.date));
+                    const timeStr = d3.timeFormat('%H:%M')(d.dateObj);
                     return `Flag: ${flag} at ${timeStr}`;
                 });
+
+            flagByVar[v] = flagGroup;
+            flagCirclesByVar[v] = flagCircles;
 
             // Hover fat line
             const hoverPath = plotArea.append('path')
@@ -582,37 +595,62 @@
         const currentYScales = {};
         vars.forEach(v => currentYScales[v] = yScales[v].copy());
 
-        const updateChart = () => {
-            vars.forEach(v => {
-                const yScale = currentYScales[v];
-                const line = d3.line()
-                    .x(d => currentX(parseTime(d.date)))
-                    .y(d => yScale(d.value))
-                    .defined(d => d.value != null);
+        const lineGeneratorByVar = {};
+        vars.forEach(v => {
+            lineGeneratorByVar[v] = d3.line()
+                .x(d => currentX(d.dateObj))
+                .y(d => currentYScales[v](d.value))
+                .defined(d => d.value != null);
+        });
 
-                lineElements[vars.indexOf(v)].attr('d', line);
-                hoverPaths[vars.indexOf(v)].attr('d', line);
+        const updateChart = () => {
+            vars.forEach((v, idx) => {
+                const line = lineGeneratorByVar[v];
+
+                lineElements[idx].attr('d', line);
+                hoverPaths[idx].attr('d', line);
                 
                 // Update flag circle positions
-                plotArea.selectAll(`.flag-circle-${v}`)
-                    .attr('cx', d => currentX(parseTime(d.date)))
-                    .attr('cy', d => yScale(d.value));
+                if (selectedVars.has(v) && flagCirclesByVar[v]) {
+                    const yScale = currentYScales[v];
+                    flagCirclesByVar[v]
+                        .attr('cx', d => currentX(d.dateObj))
+                        .attr('cy', d => yScale(d.value));
+                }
+            });
+        };
+
+        const applyZoomTransform = (transform) => {
+            currentX = transform.rescaleX(baseX);
+
+            // Rescale each Y independently
+            vars.forEach(v => {
+                currentYScales[v] = transform.rescaleY(yScales[v]);
+            });
+
+            updateXAxis(currentX);
+            updateChart();
+        };
+
+        let pendingZoomTransform = null;
+        let zoomFrameRequested = false;
+
+        const scheduleZoomRender = () => {
+            if (zoomFrameRequested) return;
+            zoomFrameRequested = true;
+            requestAnimationFrame(() => {
+                zoomFrameRequested = false;
+                if (!pendingZoomTransform) return;
+                applyZoomTransform(pendingZoomTransform);
+                pendingZoomTransform = null;
             });
         };
 
         const zoom = d3.zoom()
             .scaleExtent([1, 50])
             .on('zoom', (event) => {
-                const t = event.transform;
-                currentX = t.rescaleX(baseX);
-
-                // Rescale each Y independently
-                vars.forEach(v => {
-                    currentYScales[v] = t.rescaleY(yScales[v]);
-                });
-
-                updateXAxis(currentX);
-                updateChart();
+                pendingZoomTransform = event.transform;
+                scheduleZoomRender();
             });
 
         svg.call(zoom);
@@ -642,16 +680,17 @@
                 const [mx] = d3.pointer(event, g.node());
                 const x0 = currentX.invert(mx);
                 const points = processedData[v];
-                const bisect = d3.bisector(d => parseTime(d.date)).left;
-                const i = bisect(points, x0, 1);
-                const d0 = points[i - 1];
-                const d1 = points[i];
+                const bisect = d3.bisector(d => d.ts).left;
+                const xTs = x0.getTime();
+                const idx = bisect(points, xTs, 1);
+                const d0 = points[idx - 1];
+                const d1 = points[idx];
                 if (!d0 || !d1) return;
 
-                const d = x0 - parseTime(d0.date) > parseTime(d1.date) - x0 ? d1 : d0;
+                const d = xTs - d0.ts > d1.ts - xTs ? d1 : d0;
                 if (d.value == null) return;
 
-                const timeStr = formatTime(parseTime(d.date));
+                const timeStr = formatTime(d.dateObj);
                 const isWindDir = windDirectionVars.includes(v);
                 const valueStr = Number(d.value).toFixed(isWindDir ? 0 : 2);
                 const unitLabel = unitsMap[v] ? fixEncoding(unitsMap[v]).split(' (')[0] : '';
