@@ -194,26 +194,18 @@
         const processedData = {};
 
         vars.forEach(v => {
-            const rawPoints = (data[v]?.points || []);
-            console.log(`DEBUG ${v}: Raw points from API: ${rawPoints.length}`);
-            
-            const mapped = rawPoints.map(p => ({
-                date: p.date,
-                value: p.value == null ? null : Number(p.value),
-                flag: p.flag || ' '
-            }));
-            console.log(`DEBUG ${v}: After map(): ${mapped.length} points, first 25 values:`, mapped.slice(0, 25).map(p => p.value));
-            
-            processedData[v] = mapped.filter(p => {
-                // Only filter out invalid data (NaN), but keep null values for gaps
-                // The line generator's .defined() will handle nulls
-                if (p.value === null) return true;  // Keep nulls
-                return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
-            });
-            
-            console.log(`DEBUG ${v}: After filter(): ${processedData[v].length} points`);
-            console.log(`DEBUG ${v}: Nulls in filtered data:`, processedData[v].filter(p => p.value === null).length);
-            
+            processedData[v] = (data[v]?.points || [])
+                .map(p => ({
+                    date: p.date,
+                    value: p.value == null ? null : Number(p.value),
+                    flag: p.flag || ' '
+                }))
+                .filter(p => {
+                    // Only filter out invalid data (NaN), but keep null values for gaps
+                    // The line generator's .defined() will handle nulls
+                    if (p.value === null) return true;  // Keep nulls
+                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                });
             allValidPoints.push(...processedData[v].filter(p => p.value !== null));
         });
 
@@ -541,17 +533,6 @@
         const lineByVar = {};
         const hoverByVar = {};
         const flagByVar = {};
-
-        // DEBUG: Log data structure to see if nulls are present
-        console.log('DEBUG: First few points of first variable:');
-        if (vars.length > 0) {
-            const firstVar = vars[0];
-            const firstPoints = processedData[firstVar] || [];
-            console.log(`${firstVar} has ${firstPoints.length} total points`);
-            firstPoints.slice(0, 20).forEach((p, i) => {
-                console.log(`  [${i}] date=${p.date}, value=${p.value}, isNull=${p.value === null}`);
-            });
-        }
 
         vars.forEach(v => {
             const points = processedData[v] || [];

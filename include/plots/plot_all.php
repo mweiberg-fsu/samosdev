@@ -166,7 +166,8 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
         $timePart = substr($ts, 11, 5);
         if ($filterStart && $timePart < $filterStart) { $timeFiltered++; $flag_index++; continue; }
         if ($filterEnd && $timePart > $filterEnd) { $timeFiltered++; $flag_index++; continue; }
-        if ($val === null || $val === '') { $nullFiltered++; $flag_index++; continue; }
+        // Include null values - they create gaps in the plot
+        // Don't filter them out
 
         // Use Z flag if available, otherwise use flag from endpoint
         $flag = isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' ';

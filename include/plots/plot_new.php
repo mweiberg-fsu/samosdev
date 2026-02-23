@@ -234,7 +234,8 @@ FORM;
     $flag_index = 0;
 
     foreach ($values as $ts => $val) {
-      if ($val === null || $val === '') { $flag_index++; continue; }
+      // Include null values - they create gaps in the plot
+      // Don't skip them with continue
       
       // Use Z flag if available, otherwise use flag from endpoint
       $flag = isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' ';
