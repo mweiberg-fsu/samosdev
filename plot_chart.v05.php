@@ -166,18 +166,18 @@ if(isset($variables["$var"])) {
     if($hs > $t/10000 || $t/10000 > $he+1)
       continue;
 
-    // Skip null values (missing/special data indicators)
-    if($d === null) {
-      continue;
-    }
-
     if($t%10000==0) {
       $chart['chart_data'][0][] = $t/10000;
     }else {
       $chart['chart_data'][0][] = '';
     }	
 
-    if(isset($var_range[$var]['min']) && $d < $var_range[$var]['min']){
+    // Include null values in the output to create gaps in plots
+    if($d === null) {
+      $chart['chart_data'][1][] = null;
+      $data_res[$i] = null;
+    }
+    elseif(isset($var_range[$var]['min']) && $d < $var_range[$var]['min']){
       $chart['chart_data'][1][] = $var_range[$var]['min'];
       $data_res[$i] = $var_range[$var]['min'];
     }
