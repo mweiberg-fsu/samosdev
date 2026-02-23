@@ -200,7 +200,10 @@
                     value: p.value == null ? null : Number(p.value),
                     flag: p.flag || ' '
                 }))
-                .filter(p => p.value != null && !isNaN(p.value));
+                .filter(p => {
+                    // Exclude null, NaN, and missing data indicators (-9999, -8888)
+                    return p.value != null && !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                });
             allValidPoints.push(...processedData[v]);
         });
 

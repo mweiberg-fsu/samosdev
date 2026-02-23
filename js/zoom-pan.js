@@ -201,7 +201,10 @@
                         flag: p.flag || ' '
                     };
                 })
-                .filter(p => p.value != null && !isNaN(p.value) && p.dateObj && Number.isFinite(p.ts));
+                .filter(p => {
+                    // Exclude null, NaN, missing data indicators (-9999, -8888), and invalid dates
+                    return p.value != null && !isNaN(p.value) && p.value !== -9999 && p.value !== -8888 && p.dateObj && Number.isFinite(p.ts);
+                });
 
             processedData[v] = points;
             allValidPoints.push(...points);

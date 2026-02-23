@@ -73,7 +73,10 @@ function renderSingleTimeSeriesPlot(config) {
       date: parseDate(time),
       value: +value,
       flag: (flagArray[i] || " ").trim()
-    })).filter(d => d.date && d.value !== null && !isNaN(d.value));
+    })).filter(d => {
+      // Exclude null, NaN, missing data indicators (-9999, -8888), and invalid dates
+      return d.date && d.value !== null && !isNaN(d.value) && d.value !== -9999 && d.value !== -8888;
+    });
 
     if (formatted.length === 0) {
       d3.select(`#${container}`).html("<p>No valid data to display.</p>");
