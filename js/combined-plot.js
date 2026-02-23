@@ -841,6 +841,14 @@
         const vars = (selectedVars && selectedVars.size)
             ? allVars.filter(v => selectedVars.has(v))
             : allVars;
+        console.log('[CSV DOWNLOAD DEBUG]', { 
+            chartId, 
+            stateKey, 
+            allVars, 
+            selectedVars: selectedVars ? Array.from(selectedVars) : 'null', 
+            vars,
+            payloadKeys: Object.keys(plotData)
+        });
         if (vars.length === 0) return;
         const debugVars = new Set(['PL_SPD', 'PL_SPD2']);
         const debugVarsPresent = vars.filter(v => debugVars.has(v));

@@ -80,6 +80,12 @@
             ? window.__chartPayloads[chartId]
             : window.__originalChartData;
         if (!payload) return;
+        
+        console.log('[ZOOM MODAL DEBUG]', { 
+            chartId, 
+            payloadVars: Object.keys(payload.plotData || {}),
+            payload
+        });
 
         const zoomStateKey = chartId || payload.__chartId || '__default__';
         window.__activeZoomStateKey = zoomStateKey;
