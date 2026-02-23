@@ -126,11 +126,11 @@ for ($t = $first; $t < $last; $t += 100) {
         // Value is missing entirely - set to null to create gap in plot
         $variables[$var][$t] = null;
         $flags[$var][$t] = '#';
-    } elseif ($variables[$var][$t] == -8888) {
+    } elseif ((int)$variables[$var][$t] == -8888) {
         // -8888 indicates special missing value
         $variables[$var][$t] = null;
         $flags[$var][$t] = '$';
-    } elseif ($variables[$var][$t] == -9999) {
+    } elseif ((int)$variables[$var][$t] == -9999) {
         // -9999 indicates missing value
         $variables[$var][$t] = null;
         $flags[$var][$t] = '#';
