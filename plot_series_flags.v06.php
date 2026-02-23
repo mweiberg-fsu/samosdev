@@ -113,6 +113,7 @@ foreach ($output as $line) {
 }
 
 // Fill in missing data for flags (for time continuity)
+// NOTE: Do NOT forward-fill actual data values - let gaps appear in plots
 $last_good = isset($variables[$var][$first]) ? $variables[$var][$first] : 0;
 
 for ($t = $first; $t < $last; $t += 100) {
@@ -121,8 +122,17 @@ for ($t = $first; $t < $last; $t += 100) {
         if ($t >= $last) break;
     }
 
-    if (!isset($variables[$var][$t]) || $variables[$var][$t] == -9999 || $variables[$var][$t] == -8888) {
-        $variables[$var][$t] = $last_good;
+    if (!isset($variables[$var][$t])) {
+        // Value is missing entirely - set to null to create gap in plot
+        $variables[$var][$t] = null;
+        $flags[$var][$t] = '#';
+    } elseif ($variables[$var][$t] == -8888) {
+        // -8888 indicates special missing value
+        $variables[$var][$t] = null;
+        $flags[$var][$t] = '$';
+    } elseif ($variables[$var][$t] == -9999) {
+        // -9999 indicates missing value
+        $variables[$var][$t] = null;
         $flags[$var][$t] = '#';
     } else {
         $last_good = $variables[$var][$t];
@@ -156,6 +166,11 @@ if (isset($variables["$var"])) {
         if ($hs > $t / 10000 || $t / 10000 > $he + 1)
             continue;
 
+        // Skip null values (missing/special data indicators)
+        if ($d === null) {
+            continue;
+        }
+
         if ($t % 10000 == 0) {
             $chart['chart_data'][0][] = $t / 10000;
         } else {
@@ -176,17 +191,9 @@ if (isset($variables["$var"])) {
 
         $chart['chart_value_text'][0][] = '';
 
-        if ($d == -8888) {
-            $chart['chart_value_text'][1][] = '$';
-            $flags_arr[$j] = '$';
-        } elseif ($d == -9999) {
-            $chart['chart_value_text'][1][] = '#';
-            $flags_arr[$j] = '#';
-        } else {
-            // Include all A-Z flags, including Z flags, in the output
-            $chart['chart_value_text'][1][] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
-            $flags_arr[$j] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
-        }
+        // Output flag for this data point
+        $chart['chart_value_text'][1][] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
+        $flags_arr[$j] = isset($flags["$var"][$t]) ? $flags["$var"][$t] : ' ';
 
         $j++;
     }
