@@ -104,9 +104,27 @@
 
         const vars = Object.keys(data);
         const stateKey = chartId || '__default__';
+        
+        // Always reset selection state to match the actual variables in the payload
+        // This fixes the issue where the first variable might be filtered out but still in selection state
         if (!combinedSelectionState[stateKey] || !combinedSelectionState[stateKey].size) {
             combinedSelectionState[stateKey] = new Set(vars);
+        } else {
+            // Update existing state to only include variables that exist in current payload
+            const validVars = new Set();
+            combinedSelectionState[stateKey].forEach(v => {
+                if (vars.includes(v)) {
+                    validVars.add(v);
+                }
+            });
+            // If no valid vars remain, default to all vars in payload
+            if (validVars.size === 0) {
+                combinedSelectionState[stateKey] = new Set(vars);
+            } else {
+                combinedSelectionState[stateKey] = validVars;
+            }
         }
+        
         if (typeof combinedFlagsVisibleState[stateKey] === 'undefined') {
             combinedFlagsVisibleState[stateKey] = true;
         }
@@ -841,14 +859,6 @@
         const vars = (selectedVars && selectedVars.size)
             ? allVars.filter(v => selectedVars.has(v))
             : allVars;
-        console.log('[CSV DOWNLOAD DEBUG]', { 
-            chartId, 
-            stateKey, 
-            allVars, 
-            selectedVars: selectedVars ? Array.from(selectedVars) : 'null', 
-            vars,
-            payloadKeys: Object.keys(plotData)
-        });
         if (vars.length === 0) return;
         const debugVars = new Set(['PL_SPD', 'PL_SPD2']);
         const debugVarsPresent = vars.filter(v => debugVars.has(v));

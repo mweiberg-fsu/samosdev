@@ -80,12 +80,6 @@
             ? window.__chartPayloads[chartId]
             : window.__originalChartData;
         if (!payload) return;
-        
-        console.log('[ZOOM MODAL DEBUG]', { 
-            chartId, 
-            payloadVars: Object.keys(payload.plotData || {}),
-            payload
-        });
 
         const zoomStateKey = chartId || payload.__chartId || '__default__';
         window.__activeZoomStateKey = zoomStateKey;
@@ -113,15 +107,20 @@
             he = '23:59'         // End time
         } = payload;
         const vars = Object.keys(data);
-        if (!zoomSelectionState[zoomStateKey] || !zoomSelectionState[zoomStateKey].size) {
-            const inheritedState = combinedSelectionState[zoomStateKey];
-            zoomSelectionState[zoomStateKey] = inheritedState && inheritedState.size
-                ? new Set(Array.from(inheritedState).filter(v => vars.includes(v)))
+        
+        // Always synchronize zoom selection with combined selection and current payload
+        const inheritedState = combinedSelectionState[zoomStateKey];
+        if (inheritedState && inheritedState.size) {
+            // Filter inherited state to only include vars that exist in current payload
+            const validInheritedVars = Array.from(inheritedState).filter(v => vars.includes(v));
+            zoomSelectionState[zoomStateKey] = validInheritedVars.length > 0 
+                ? new Set(validInheritedVars) 
                 : new Set(vars);
-            if (!zoomSelectionState[zoomStateKey].size) {
-                zoomSelectionState[zoomStateKey] = new Set(vars);
-            }
+        } else {
+            // No inherited state, use all vars from payload
+            zoomSelectionState[zoomStateKey] = new Set(vars);
         }
+        
         const selectedVars = zoomSelectionState[zoomStateKey];
         
         // === CALCULATE LEGEND LINES FIRST (to determine top margin) ===
