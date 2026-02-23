@@ -202,12 +202,15 @@
                     };
                 })
                 .filter(p => {
-                    // Exclude null, NaN, missing data indicators (-9999, -8888), and invalid dates
-                    return p.value != null && !isNaN(p.value) && p.value !== -9999 && p.value !== -8888 && p.dateObj && Number.isFinite(p.ts);
+                    // Keep null values for gaps, but filter out invalid dates and NaN
+                    // Also exclude -9999/-8888 that weren't converted to null
+                    if (!p.dateObj || !Number.isFinite(p.ts)) return false;
+                    if (p.value === null) return true;  // Keep nulls
+                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
                 });
 
             processedData[v] = points;
-            allValidPoints.push(...points);
+            allValidPoints.push(...points.filter(p => p.value !== null));
         });
 
         if (allValidPoints.length === 0) return;

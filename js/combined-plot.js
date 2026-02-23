@@ -201,10 +201,12 @@
                     flag: p.flag || ' '
                 }))
                 .filter(p => {
-                    // Exclude null, NaN, and missing data indicators (-9999, -8888)
-                    return p.value != null && !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                    // Only filter out invalid data (NaN), but keep null values for gaps
+                    // The line generator's .defined() will handle nulls
+                    if (p.value === null) return true;  // Keep nulls
+                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
                 });
-            allValidPoints.push(...processedData[v]);
+            allValidPoints.push(...processedData[v].filter(p => p.value !== null));
         });
 
         if (allValidPoints.length === 0) return;

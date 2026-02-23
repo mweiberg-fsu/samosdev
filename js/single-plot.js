@@ -17,7 +17,8 @@ function renderSingleTimeSeriesPlot(config) {
 
   const line = d3.line()
     .x(d => x(d.date))
-    .y(d => y(d.value));
+    .y(d => y(d.value))
+    .defined(d => d.value != null);
 
   const colors = ["#00FFFF", "#0000FF", "#8A2BE2", "#00FF00", "#FF8C00", "#FFFF00",
                   "#FF00FF", "#FF0000", "#40E0D0", "#006400", "#FF69B4", "#000000", "#B22222"];
@@ -74,8 +75,10 @@ function renderSingleTimeSeriesPlot(config) {
       value: +value,
       flag: (flagArray[i] || " ").trim()
     })).filter(d => {
-      // Exclude null, NaN, missing data indicators (-9999, -8888), and invalid dates
-      return d.date && d.value !== null && !isNaN(d.value) && d.value !== -9999 && d.value !== -8888;
+      // Keep null values for gaps, filter out invalid dates and -9999/-8888
+      if (!d.date) return false;
+      if (d.value === null) return true;  // Keep nulls
+      return !isNaN(d.value) && d.value !== -9999 && d.value !== -8888;
     });
 
     if (formatted.length === 0) {
