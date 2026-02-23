@@ -313,7 +313,9 @@ FORM;
     echo '</div>';
 
     echo "<script>
-    // Store payload for zoom modal
+    // Store payload for zoom modal and CSV download
+    window.__chartPayloads = window.__chartPayloads || {};
+    window.__chartPayloads['$chartId'] = $jsPayload;
     window.__originalChartData_$plotIndex = $jsPayload;
     window.__originalPolarData_$plotIndex = $jsPayload;
     
