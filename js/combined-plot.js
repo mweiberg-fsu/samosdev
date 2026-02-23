@@ -194,18 +194,26 @@
         const processedData = {};
 
         vars.forEach(v => {
-            processedData[v] = (data[v]?.points || [])
-                .map(p => ({
-                    date: p.date,
-                    value: p.value == null ? null : Number(p.value),
-                    flag: p.flag || ' '
-                }))
-                .filter(p => {
-                    // Only filter out invalid data (NaN), but keep null values for gaps
-                    // The line generator's .defined() will handle nulls
-                    if (p.value === null) return true;  // Keep nulls
-                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
-                });
+            const rawPoints = (data[v]?.points || []);
+            console.log(`DEBUG ${v}: Raw points from API: ${rawPoints.length}`);
+            
+            const mapped = rawPoints.map(p => ({
+                date: p.date,
+                value: p.value == null ? null : Number(p.value),
+                flag: p.flag || ' '
+            }));
+            console.log(`DEBUG ${v}: After map(): ${mapped.length} points, first 25 values:`, mapped.slice(0, 25).map(p => p.value));
+            
+            processedData[v] = mapped.filter(p => {
+                // Only filter out invalid data (NaN), but keep null values for gaps
+                // The line generator's .defined() will handle nulls
+                if (p.value === null) return true;  // Keep nulls
+                return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+            });
+            
+            console.log(`DEBUG ${v}: After filter(): ${processedData[v].length} points`);
+            console.log(`DEBUG ${v}: Nulls in filtered data:`, processedData[v].filter(p => p.value === null).length);
+            
             allValidPoints.push(...processedData[v].filter(p => p.value !== null));
         });
 
