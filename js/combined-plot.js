@@ -534,6 +534,17 @@
         const hoverByVar = {};
         const flagByVar = {};
 
+        // DEBUG: Log data structure to see if nulls are present
+        console.log('DEBUG: First few points of first variable:');
+        if (vars.length > 0) {
+            const firstVar = vars[0];
+            const firstPoints = processedData[firstVar] || [];
+            console.log(`${firstVar} has ${firstPoints.length} total points`);
+            firstPoints.slice(0, 20).forEach((p, i) => {
+                console.log(`  [${i}] date=${p.date}, value=${p.value}, isNull=${p.value === null}`);
+            });
+        }
+
         vars.forEach(v => {
             const points = processedData[v] || [];
             const yScale = yScales[v]; // Get the correct scale for this variable
