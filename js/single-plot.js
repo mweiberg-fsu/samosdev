@@ -72,7 +72,7 @@ function renderSingleTimeSeriesPlot(config) {
 
     const formatted = entries.map(([time, value], i) => ({
       date: parseDate(time),
-      value: +value,
+      value: value == null ? null : Number(value),
       flag: (flagArray[i] || " ").trim()
     })).filter(d => {
       // Keep null values for gaps, filter out invalid dates and -9999/-8888
