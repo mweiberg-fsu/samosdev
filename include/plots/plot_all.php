@@ -13,7 +13,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
   echo "<h2 style='text-align:center; color:#2c3e50; margin:20px 0;'>$title</h2>";
   echo '<style>
     .plot-menu-wrap { position: relative; width: 790px; margin: 10px auto; border: 1px solid #ccc; }
-    .plot-menu { position: absolute; top: 8px; right: 8px; z-index: 25; }
+    .plot-menu { position: absolute; top: 8px; right: 8px; z-index: 10; }
     .plot-menu > summary { list-style: none; cursor: pointer; width: 30px; height: 30px; line-height: 28px; text-align: center; font-size: 18px; border: 1px solid #bbb; border-radius: 4px; background: #fff; }
     .plot-menu > summary::-webkit-details-marker { display: none; }
     .plot-menu-dropdown { position: absolute; right: 0; margin-top: 6px; background: #fff; border: 1px solid #bbb; border-radius: 6px; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 6px; }

@@ -76,6 +76,15 @@
         
         container.innerHTML = '';
 
+        // Add click-outside handler to close modal and restore scrolling
+        modal.addEventListener('click', function handleBackdropClick(e) {
+            // Only close if clicking directly on the modal backdrop (not the content)
+            if (e.target === modal) {
+                closeZoomModal();
+                modal.removeEventListener('click', handleBackdropClick);
+            }
+        });
+
         const payload = (chartId && window.__chartPayloads && window.__chartPayloads[chartId])
             ? window.__chartPayloads[chartId]
             : window.__originalChartData;
