@@ -907,14 +907,21 @@
                 const points = plotData[v]?.points || [];
                 const point = points.find(p => p.date === ts);
                 if (point) {
-                    const flagValue = point.flag && point.flag.trim() !== '' && point.flag.trim() !== ' '
-                        ? point.flag.trim()
-                        : 'Z';
-                    csv += ',' + formatCsvValue(point.value, {
+                    const trimmedFlag = point.flag && point.flag.trim() !== ' ' ? point.flag.trim() : '';
+                    const flagValue = trimmedFlag !== '' ? trimmedFlag : 'Z';
+                    let csvValue = formatCsvValue(point.value, {
                         enabled: debugVars.has(v),
                         varName: v,
                         timestamp: ts
                     });
+                    if (csvValue === '' && point.value == null) {
+                        if (trimmedFlag === '$') {
+                            csvValue = '-8888';
+                        } else if (trimmedFlag === '#') {
+                            csvValue = '-9999';
+                        }
+                    }
+                    csv += ',' + csvValue;
                     csv += ',' + flagValue;
                 } else {
                     csv += ',,';
