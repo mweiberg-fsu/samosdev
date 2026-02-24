@@ -919,6 +919,8 @@
                             csvValue = '-8888';
                         } else if (trimmedFlag === '#') {
                             csvValue = '-9999';
+                        } else if (trimmedFlag === 'Z' || trimmedFlag === '') {
+                            csvValue = '-9999';
                         }
                     }
                     csv += ',' + csvValue;
