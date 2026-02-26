@@ -583,7 +583,7 @@
                 .style('fill', axisColor)
                 .text(unit);
 
-            axisByUnit[unit] = { axisGroup, axisLabel, vars: varsInGroup };
+            axisByUnit[unit] = { axisGroup, axisLabel, vars: varsInGroup, isLeft, axisOffset };
         });
 
         // X Axis
@@ -613,6 +613,53 @@
                 .attr('dx', '-0.8em')
                 .attr('dy', '0.15em')
                 .attr('transform', 'rotate(-45)');
+        };
+
+        const updateYAxes = () => {
+            Object.keys(axisByUnit).forEach(unit => {
+                const axisInfo = axisByUnit[unit];
+                const varsInGroup = axisInfo.vars;
+                const scale = currentYScales[varsInGroup[0]];
+                const isWindDir = varsInGroup.every(v => windDirectionVars.includes(v));
+
+                let yAxis = axisInfo.isLeft
+                    ? d3.axisLeft(scale).ticks(8)
+                    : d3.axisRight(scale).ticks(8);
+
+                if (isWindDir) {
+                    yAxis = yAxis
+                        .tickValues([0, 45, 90, 135, 180, 225, 270, 315, 360])
+                        .tickFormat(d => {
+                            if (d === 0 || d === 360) return 'N';
+                            if (d === 90) return 'E';
+                            if (d === 180) return 'S';
+                            if (d === 270) return 'W';
+                            return d + '\u00B0';
+                        });
+                }
+
+                axisInfo.axisGroup.call(yAxis);
+
+                const axisColor = color(varsInGroup[0]);
+                axisInfo.axisGroup.selectAll('path, line').style('stroke', axisColor);
+                axisInfo.axisGroup.selectAll('text')
+                    .style('fill', axisColor)
+                    .style('font-size', '13px');
+
+                const tickNodes = axisInfo.axisGroup.selectAll('text').nodes();
+                const maxTickLabelWidth = tickNodes.reduce((maxWidth, node) => {
+                    if (!node || typeof node.getBBox !== 'function') return maxWidth;
+                    return Math.max(maxWidth, node.getBBox().width || 0);
+                }, 0);
+
+                const tickPaddingFromAxis = 10;
+                const axisLabelGap = 20;
+                const labelOffset = axisInfo.isLeft
+                    ? axisInfo.axisOffset - maxTickLabelWidth - tickPaddingFromAxis - axisLabelGap
+                    : axisInfo.axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
+
+                axisInfo.axisLabel.attr('y', labelOffset);
+            });
         };
 
         updateXAxis(baseX);
@@ -656,6 +703,7 @@
             });
 
             updateXAxis(currentX);
+            updateYAxes();
             updateChart();
         };
 
