@@ -121,15 +121,15 @@ for($t = $first; $t < $last; $t+=100) {
       break;
   }
   if(!isset($variables[$var][$t])) {
-    // Missing timestamp: gap mode uses null, legacy mode carries forward last good value
+    // Missing timestamp in source record stream: show gaps only in gap modes
     $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '#';
   } elseif((int)$variables[$var][$t] == -8888) {
-    // -8888 missing value: gap mode uses null, legacy mode carries forward last good value
+    // -8888 missing value: gap mode treats as gap, legacy mode carries forward
     $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '$';
   } elseif((int)$variables[$var][$t] == -9999) {
-    // -9999 missing value: gap mode uses null, legacy mode carries forward last good value
+    // -9999 missing value: gap mode treats as gap, legacy mode carries forward
     $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '#';
   } else {
@@ -199,6 +199,12 @@ if(isset($variables["$var"])) {
     else
       $chart['chart_value_text'][1][] = $flags["$var"][$t];
 
+    // Build JSON from the same timeline used for plotting to preserve true record gaps
+    $hhmmss = str_pad((string)$t, 6, '0', STR_PAD_LEFT);
+    $isoTs = substr($date, 0, 4) . '-' . substr($date, 4, 2) . '-' . substr($date, 6, 2)
+      . ' ' . substr($hhmmss, 0, 2) . ':' . substr($hhmmss, 2, 2) . ':' . substr($hhmmss, 4, 2);
+    $json_result[$isoTs] = $data_res[$i];
+
     $i = $i + 1;
     if($i%60 == 0)
 	$j = $j + 1;
@@ -211,16 +217,7 @@ if(isset($variables["$var"])) {
 //print_r($data_res);
 //print_r_html($chart);
 
-//Get timestamp for json result
-foreach($times as $minutes){
-        $addingFiveMinutes= strtotime('1980-01-01 00:00:00 +'. $minutes . ' minute');
-        //echo date('Y-m-d H:i:s', $addingFiveMinutes) . "\n";
-}
-
-for($k = 0; $k < count($times); $k++){
-	$addingFiveMinutes= strtotime('1980-01-01 00:00:00 +'. $times[$k] . ' minute');
-	$json_result[date('Y-m-d H:i:s', $addingFiveMinutes)] = $data_res[$k];
-}	
+// json_result is assembled in the plotting loop to keep timestamps aligned with plotted points
 
 
 if(isset($_GET['pretty'])){
