@@ -78,6 +78,11 @@ foreach($output as $line) {
 			if(trim($headers[$i]) != "$var")
 	  			continue;
       	
+        	// Skip storing flag if value is empty (no data point to plot)
+        	if ($value === '') {
+        		continue;
+        	}
+      	
         	if (!$fbound && (($value < $minimum) || ($value > $maximum))) {
 	    		$variables[trim($headers[$i])][trim($data[1])] = -9999;
         	} else {
