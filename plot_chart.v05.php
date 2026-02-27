@@ -145,7 +145,39 @@ if (isset($variables["$var"]) && is_array($variables["$var"])) {
     $variables[$var] = [];
     ksort($variables[$var]); // Now you can safely sort an empty array
 }
-//print_r($times);
+
+// In gap modes, detect large timestamp gaps between consecutive non-null values and mark with sentinel
+if ($useGapMode && isset($variables["$var"]) && count($variables["$var"]) > 1) {
+  $times_with_data = array();
+  foreach ($variables["$var"] as $t => $val) {
+    if ($val !== null && (int)$val != -8888 && (int)$val != -9999) {
+      $times_with_data[] = $t;
+    }
+  }
+  
+  // Find median interval to establish expected sampling rate
+  if (count($times_with_data) > 2) {
+    $intervals = array();
+    for ($i = 1; $i < count($times_with_data); $i++) {
+      $intervals[] = $times_with_data[$i] - $times_with_data[$i-1];
+    }
+    sort($intervals);
+    $median_interval = $intervals[intval(count($intervals) / 2)];
+    $gap_threshold = max($median_interval * 2, 300); // 2x median or 5 min minimum
+    
+    // Mark large gaps with sentinel null to force line breaks
+    for ($i = 1; $i < count($times_with_data); $i++) {
+      $gap = $times_with_data[$i] - $times_with_data[$i-1];
+      if ($gap > $gap_threshold) {
+        // Insert a marked null at the midpoint to signal line break
+        $mid_t = intval(($times_with_data[$i-1] + $times_with_data[$i]) / 2);
+        $variables["$var"][$mid_t] = null;
+        $flags["$var"][$mid_t] = '|'; // Gap marker
+      }
+    }
+  }
+  ksort($variables["$var"]); // Re-sort after adding gap markers
+}
 
 
 $data_res = array();
