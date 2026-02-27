@@ -101,7 +101,14 @@ foreach($output as $line) {
     }
   }
 }
-
+// DEBUG: Show what was stored for the problematic timestamp
+if(isset($_GET['debug'])) {
+  echo "<!-- DEBUG: Variables and Flags -->\n";
+  foreach($variables["$var"] as $t => $val) {
+    $flag = isset($flags["$var"][$t]) ? $flags["$var"][$t] : 'N/A';
+    echo "<!-- Time: $t, Value: $val, Flag: $flag -->\n";
+  }
+}
 /*
 if($first%10000 != 0) {
   for($t = $first-100; true; $t-=100) {
