@@ -67,7 +67,6 @@ foreach($output as $line) {
         	continue;
       	$variables['time'][trim($data[1])] = trim($data[1]);
 
-      	array_push($times, trim($data[2]));	
       	if($first == -9999)
 		$first = trim($data[1]);
 
@@ -82,6 +81,9 @@ foreach($output as $line) {
         	if ($value === '' || $value === null) {
         		continue;
         	}
+      	
+        	// Only add time for non-empty values to keep times array in sync
+        	array_push($times, trim($data[2]));
       	
         	if (!$fbound && (($value < $minimum) || ($value > $maximum))) {
 	    		$variables[trim($headers[$i])][trim($data[1])] = -9999;

@@ -73,7 +73,6 @@ foreach ($output as $line) {
         $data = explode(",", $line);
         if (count($data) == count($headers)) {
             $variables['time'][trim($data[1])] = trim($data[1]);
-            array_push($times, trim($data[2]));
 
             if ($first == -9999)
                 $first = trim($data[1]);
@@ -90,6 +89,9 @@ foreach ($output as $line) {
                 if ($value === '' || $value === null) {
                     continue;
                 }
+
+                // Only add time for non-empty values to keep times and flags in sync
+                array_push($times, trim($data[2]));
 
                 $variables[$variable_name][trim($data[1])] = $value;
 
