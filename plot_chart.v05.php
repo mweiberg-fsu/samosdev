@@ -78,8 +78,8 @@ foreach($output as $line) {
 			if(trim($headers[$i]) != "$var")
 	  			continue;
       	
-        	// Skip storing flag if value is empty (no data point to plot)
-        	if ($value === '') {
+        	// Skip storing flag and value if value is empty (no data point to plot)
+        	if ($value === '' || $value === null) {
         		continue;
         	}
       	
