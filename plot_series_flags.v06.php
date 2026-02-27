@@ -86,6 +86,11 @@ foreach ($output as $line) {
                 if (trim($headers[$i]) != "$var")
                     continue;
 
+                // Skip storing flag if value is empty (no data point to plot)
+                if ($value === '' || $value === null) {
+                    continue;
+                }
+
                 $variables[$variable_name][trim($data[1])] = $value;
 
                 // Ensure flag is set for variable
