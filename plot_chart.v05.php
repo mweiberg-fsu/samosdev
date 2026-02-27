@@ -169,6 +169,10 @@ if(isset($variables["$var"])) {
   foreach($variables["$var"] as $t=>$d) {
     if($hs > $t/10000 || $t/10000 > $he+1)
       continue;
+    
+    // Skip Z-flagged data points in Plot view (mode=6)
+    if($mode == 6 && isset($flags["$var"][$t]) && $flags["$var"][$t] == 'Z')
+      continue;
 
     if($t%10000==0) {
       $chart['chart_data'][0][] = $t/10000;
