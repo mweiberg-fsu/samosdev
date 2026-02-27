@@ -159,7 +159,7 @@ FORM;
 
       // Create unique div ID for each plot
       $plot_div_id = "plot_" . $num_of_plots;
-      InsertTimeSeriesPlot("plot_chart.php?ship=$ship&date=$date&order=$order&var={$row->variable_name}&version_no={$version_no}&units=" . urlencode($row->units) . "&fbound={$_REQUEST['fbound']}&hs={$_REQUEST['hs']}&he={$_REQUEST['he']}", $ship_str, $flags, $num_of_plots, $plot_div_id);
+      InsertTimeSeriesPlot("plot_chart.php?ship=$ship&date=$date&order=$order&var={$row->variable_name}&version_no={$version_no}&units=" . urlencode($row->units) . "&fbound={$_REQUEST['fbound']}&hs={$_REQUEST['hs']}&he={$_REQUEST['he']}&mode=6", $ship_str, $flags, $num_of_plots, $plot_div_id);
       echo "\n";
       $num_of_plots++;
     }

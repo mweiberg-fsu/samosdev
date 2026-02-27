@@ -22,6 +22,7 @@ $fbound = ($_REQUEST['fbound'] == 1) ? true : false;
 $units = $_REQUEST['units'];
 $hs = (isset($_REQUEST['hs'])) ? (int) $_REQUEST['hs'] : 0;
 $he = (isset($_REQUEST['he'])) ? (int) $_REQUEST['he'] : 23;
+$mode = (isset($_REQUEST['mode'])) ? (int) $_REQUEST['mode'] : 6;
 
 $query = "SELECT minimum_value, maximum_value FROM known_variable WHERE variable_name = '".$var."'";
 
@@ -84,7 +85,10 @@ foreach($output as $line) {
         	}
 			
 			$flags[trim($headers[$i])][trim($data[1])] = trim($data[$i+1]);
-			if(trim($data[$i]) != -8888 && trim($data[$i]) != -9999 && ($fbound || trim($data[$i+1]) == 'Z' || trim($data[$i+1]) == 'L' || trim($data[$i+1]) == 'N')) {
+			// For mode=6 (Plot view), exclude Z flags from range calculation
+			// For mode=9 (Plot new), include Z flags
+			$includeZFlags = ($mode == 9);
+			if(trim($data[$i]) != -8888 && trim($data[$i]) != -9999 && ($fbound || ($includeZFlags && trim($data[$i+1]) == 'Z') || trim($data[$i+1]) == 'L' || trim($data[$i+1]) == 'N')) {
 	  			if(!isset($var_range[trim($headers[$i])]['max']) || $var_range[trim($headers[$i])]['max'] < trim($data[$i]))
 	    			$var_range[trim($headers[$i])]['max'] = trim($data[$i]);
 	  			if(!isset($var_range[trim($headers[$i])]['min']) || $var_range[trim($headers[$i])]['min'] > trim($data[$i]))
