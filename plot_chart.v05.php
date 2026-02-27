@@ -146,7 +146,8 @@ if (isset($variables["$var"]) && is_array($variables["$var"])) {
     ksort($variables[$var]); // Now you can safely sort an empty array
 }
 
-// In gap modes, detect large timestamp gaps between consecutive non-null values and mark with sentinel
+// In gap modes, detect large timestamp gaps to insert nulls in output
+$largeGaps = array(); // track end timestamps of large gaps for output nulls
 if ($useGapMode && isset($variables["$var"]) && count($variables["$var"]) > 1) {
   $times_with_data = array();
   foreach ($variables["$var"] as $t => $val) {
@@ -165,18 +166,15 @@ if ($useGapMode && isset($variables["$var"]) && count($variables["$var"]) > 1) {
     $median_interval = $intervals[intval(count($intervals) / 2)];
     $gap_threshold = max($median_interval * 2, 300); // 2x median or 5 min minimum
     
-    // Mark large gaps with sentinel null to force line breaks
+    // Track which real timestamps mark the end of large gaps
     for ($i = 1; $i < count($times_with_data); $i++) {
       $gap = $times_with_data[$i] - $times_with_data[$i-1];
       if ($gap > $gap_threshold) {
-        // Insert a marked null at the midpoint to signal line break
-        $mid_t = intval(($times_with_data[$i-1] + $times_with_data[$i]) / 2);
-        $variables["$var"][$mid_t] = null;
-        $flags["$var"][$mid_t] = '|'; // Gap marker
+        // Mark this timestamp as needing a null before it to break the line
+        $largeGaps[$times_with_data[$i]] = true;
       }
     }
   }
-  ksort($variables["$var"]); // Re-sort after adding gap markers
 }
 
 
@@ -199,6 +197,23 @@ if(isset($variables["$var"])) {
   foreach($variables["$var"] as $t=>$d) {
     if($hs > $t/10000 || $t/10000 > $he+1)
       continue;
+
+    // In gap modes, insert a null before timestamps that follow large gaps to break lines
+    if ($useGapMode && isset($largeGaps[$t])) {
+      // Output a null to create the gap
+      $chart['chart_data'][0][] = '';
+      $chart['chart_data'][1][] = null;
+      $data_res[$i] = null;
+      $chart['chart_value_text'][0][] = '';
+      $chart['chart_value_text'][1][] = '';
+      
+      // Build JSON for the null gap marker
+      $hhmmss_null = str_pad((string)$t, 6, '0', STR_PAD_LEFT);
+      $isoTs_null = substr($date, 0, 4) . '-' . substr($date, 4, 2) . '-' . substr($date, 6, 2)
+        . ' ' . substr($hhmmss_null, 0, 2) . ':' . substr($hhmmss_null, 2, 2) . ':00';
+      $json_result[$isoTs_null] = null;
+      $i = $i + 1;
+    }
 
     if($t%10000==0) {
       $chart['chart_data'][0][] = $t/10000;
