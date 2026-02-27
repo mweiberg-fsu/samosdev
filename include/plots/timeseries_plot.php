@@ -155,6 +155,11 @@ FORM;
     if (is_array($_REQUEST['vars']) && in_array($row->variable_name, $_REQUEST['vars'])) {
       $flags_url = $SERVER . "/charts/plot_series_flags.php?ship=$ship&date=$date&order=$order&var={$row->variable_name}&version_no={$version_no}&units=" . urlencode($row->units) . "&fbound={$_REQUEST['fbound']}&hs={$_REQUEST['hs']}&he={$_REQUEST['he']}";
       $flags = flags_array($flags_url);
+      foreach ($flags as $idx => $flag) {
+        if (strtoupper(trim((string) $flag)) == 'Z') {
+          $flags[$idx] = ' ';
+        }
+      }
       $ship_str = "ship: $ship   date: $date   order: $order   var: $row->variable_name   version_number: $version_no   units: $row->units";
 
       // Create unique div ID for each plot

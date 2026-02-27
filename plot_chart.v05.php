@@ -85,10 +85,7 @@ foreach($output as $line) {
         	}
 			
 			$flags[trim($headers[$i])][trim($data[1])] = trim($data[$i+1]);
-			// For mode=6 (Plot view), exclude Z flags from range calculation
-			// For mode=9 (Plot new), include Z flags
-			$includeZFlags = ($mode == 9);
-			if(trim($data[$i]) != -8888 && trim($data[$i]) != -9999 && ($fbound || ($includeZFlags && trim($data[$i+1]) == 'Z') || trim($data[$i+1]) == 'L' || trim($data[$i+1]) == 'N')) {
+      if(trim($data[$i]) != -8888 && trim($data[$i]) != -9999 && ($fbound || trim($data[$i+1]) == 'Z' || trim($data[$i+1]) == 'L' || trim($data[$i+1]) == 'N')) {
 	  			if(!isset($var_range[trim($headers[$i])]['max']) || $var_range[trim($headers[$i])]['max'] < trim($data[$i]))
 	    			$var_range[trim($headers[$i])]['max'] = trim($data[$i]);
 	  			if(!isset($var_range[trim($headers[$i])]['min']) || $var_range[trim($headers[$i])]['min'] > trim($data[$i]))
@@ -168,10 +165,6 @@ $chart['chart_value_text'][1][0] = '';
 if(isset($variables["$var"])) {
   foreach($variables["$var"] as $t=>$d) {
     if($hs > $t/10000 || $t/10000 > $he+1)
-      continue;
-    
-    // Skip Z-flagged data points in Plot view (mode=6)
-    if($mode == 6 && isset($flags["$var"][$t]) && $flags["$var"][$t] == 'Z')
       continue;
 
     if($t%10000==0) {
