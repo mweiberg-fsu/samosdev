@@ -112,6 +112,7 @@ if($first%10000 != 0) {
  */
 //$last_good = $variables[$var][$first];\
 $last_good = isset($variables[$var][$first]) ? $variables[$var][$first] : null;
+$useGapMode = in_array($mode, array(7, 9, 10));
 
 for($t = $first; $t < $last; $t+=100) {
   if($t%10000 == 6000) {
@@ -120,16 +121,16 @@ for($t = $first; $t < $last; $t+=100) {
       break;
   }
   if(!isset($variables[$var][$t])) {
-    // Value is missing entirely - set to null to create gap in plot
-    $variables[$var][$t] = null;
+    // Missing timestamp: gap mode uses null, legacy mode carries forward last good value
+    $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '#';
   } elseif((int)$variables[$var][$t] == -8888) {
-    // -8888 indicates special missing value
-    $variables[$var][$t] = null;
+    // -8888 missing value: gap mode uses null, legacy mode carries forward last good value
+    $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '$';
   } elseif((int)$variables[$var][$t] == -9999) {
-    // -9999 indicates missing value
-    $variables[$var][$t] = null;
+    // -9999 missing value: gap mode uses null, legacy mode carries forward last good value
+    $variables[$var][$t] = $useGapMode ? null : $last_good;
     $flags[$var][$t] = '#';
   } else {
     $last_good = $variables[$var][$t];

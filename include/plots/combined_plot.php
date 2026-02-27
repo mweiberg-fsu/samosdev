@@ -294,6 +294,7 @@ FORM;
       'fbound' => isset($_REQUEST['fbound']) ? $_REQUEST['fbound'] : 1,
       'hs' => $hs,
       'he' => $he,
+      'mode' => 7,
     ));
 
     $urlMap[$var] = array(
