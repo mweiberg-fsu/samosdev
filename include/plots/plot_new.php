@@ -238,8 +238,20 @@ FORM;
       // Include null values - they create gaps in the plot
       // Don't skip them with continue
       
+      // Prefer timestamp-aligned flag to avoid index drift on missing values
+      if (isset($flags_raw[$ts])) {
+        $flag = $flags_raw[$ts];
+      } elseif (isset($flag_by_index[$flag_index])) {
+        $flag = $flag_by_index[$flag_index];
+      } else {
+        $flag = ' ';
+      }
+
+      if ($val === '') {
+        $val = null;
+      }
+
       // Use Z flag if available, otherwise use flag from endpoint
-      $flag = isset($flag_by_index[$flag_index]) ? $flag_by_index[$flag_index] : ' ';
       if ($flag === ' ' || $flag === '') {
         $flag = $zFlagsByVar[$var] ?? ' ';
       }

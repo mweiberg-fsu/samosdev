@@ -939,9 +939,7 @@
                     if (csvValue === '' && point.value == null) {
                         if (trimmedFlag === '$') {
                             csvValue = '-8888';
-                        } else if (trimmedFlag === '#') {
-                            csvValue = '-9999';
-                        } else if (trimmedFlag === 'Z' || trimmedFlag === '') {
+                        } else {
                             csvValue = '-9999';
                         }
                     }

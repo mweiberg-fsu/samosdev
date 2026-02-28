@@ -91,10 +91,11 @@ foreach($output as $line) {
 			if(trim($headers[$i]) != "$var")
 	  			continue;
       	
-        	// Skip storing flag and value if value is empty (no data point to plot)
-        	if ($value === '' || $value === null) {
-        		continue;
-        	}
+          // Empty raw value at a valid timestamp should be treated as missing (-9999)
+          // so timestamps remain aligned and CSV/plots can represent it consistently.
+          if ($value === '' || $value === null) {
+          	$value = '-9999';
+          }
       	
         	// Only add time for non-empty values to keep times array in sync
         	array_push($times, trim($data[2]));
