@@ -83,6 +83,14 @@
         return normalized;
     }
 
+    function normalizeCsvTimestamp(rawTimestamp, flagValue) {
+        const timestamp = rawTimestamp == null ? '' : String(rawTimestamp).trim();
+        if (timestamp !== '') return timestamp;
+
+        const flag = flagValue == null ? '' : String(flagValue).trim();
+        return flag === '$' ? '-8888' : '-9999';
+    }
+
     global.renderCombinedPlot = function (payload, chartId) {
 
         console.log('Full payload:', payload);
@@ -195,12 +203,18 @@
 
         vars.forEach(v => {
             processedData[v] = (data[v]?.points || [])
-                .map(p => ({
-                    date: p.date,
-                    value: p.value == null ? null : Number(p.value),
-                    flag: p.flag || ' '
-                }))
+                .map(p => {
+                    const date = p.date == null ? '' : String(p.date).trim();
+                    const parsedDate = date ? parseTime(date) : null;
+                    return {
+                        date,
+                        parsedDate,
+                        value: p.value == null ? null : Number(p.value),
+                        flag: p.flag || ' '
+                    };
+                })
                 .filter(p => {
+                    if (!p.parsedDate) return false;
                     // Only filter out invalid data (NaN), but keep null values for gaps
                     // The line generator's .defined() will handle nulls
                     if (p.value === null) return true;  // Keep nulls
@@ -247,7 +261,7 @@
         const height = outerChartHeight - margin.top - margin.bottom;
 
         const x = d3.scaleTime()
-            .domain(d3.extent(allValidPoints, d => parseTime(d.date)))
+            .domain(d3.extent(allValidPoints, d => d.parsedDate))
             .range([0, width]);
 
         // Create separate y-scales for each variable
@@ -492,7 +506,7 @@
                 // Only include non-Z, non-empty flags
                 if (flag && flag !== 'Z' && flag !== ' ' && flagColors[flag]) {
                     allFlaggedPoints.push({
-                        date: parseTime(p.date),
+                        date: p.parsedDate,
                         flag: flag,
                         color: flagColors[flag]
                     });
@@ -540,7 +554,7 @@
 
             // Create line generator with correct y-scale
             const lineGen = d3.line()
-                .x(d => x(parseTime(d.date)))
+                .x(d => x(d.parsedDate))
                 .y(d => yScale(d.value))
                 .defined(d => d.value != null);
 
@@ -571,7 +585,7 @@
                 .enter()
                 .append('circle')
                 .attr('class', `flag-circle flag-circle-${v}`)
-                .attr('cx', d => x(parseTime(d.date)))
+                .attr('cx', d => x(d.parsedDate))
                 .attr('cy', d => yScale(d.value))
                 .attr('r', 4)
                 .attr('fill', d => {
@@ -587,7 +601,7 @@
                 .append('title')
                 .text(d => {
                     const flag = d.flag ? d.flag.trim() : '';
-                    const timeStr = d3.timeFormat('%H:%M')(parseTime(d.date));
+                    const timeStr = d3.timeFormat('%H:%M')(d.parsedDate);
                     return `Flag: ${flag} at ${timeStr}`;
                 });
 
@@ -604,15 +618,15 @@
                 .on('mousemove', function (event) {
                     const [mx] = d3.pointer(event, this);
                     const x0 = x.invert(mx);
-                    const i = d3.bisector(d => parseTime(d.date)).left(points, x0, 1);
+                    const i = d3.bisector(d => d.parsedDate).left(points, x0, 1);
                     const d0 = points[i - 1];
                     const d1 = points[i];
                     if (!d0 || !d1) return;
 
-                    const d = x0 - parseTime(d0.date) > parseTime(d1.date) - x0 ? d1 : d0;
+                    const d = x0 - d0.parsedDate > d1.parsedDate - x0 ? d1 : d0;
                     if (d.value == null) return;
 
-                    const timeStr = formatTime(parseTime(d.date));
+                    const timeStr = formatTime(d.parsedDate);
                     const isWindDirectionVar = windDirectionVars.includes(v);
                     const valueStr = Number(d.value).toFixed(isWindDirectionVar ? 0 : 2);
                     const unitLabel = unitsMap[v] || '';
@@ -881,10 +895,19 @@
         }
 
         // Collect all unique timestamps
+        const normalizedPointMaps = {};
         const allTimestamps = new Set();
         vars.forEach(v => {
             const points = plotData[v]?.points || [];
-            points.forEach(p => allTimestamps.add(p.date));
+            const pointMap = new Map();
+            points.forEach(p => {
+                const normalizedTs = normalizeCsvTimestamp(p.date, p.flag);
+                if (!pointMap.has(normalizedTs)) {
+                    pointMap.set(normalizedTs, p);
+                }
+                allTimestamps.add(normalizedTs);
+            });
+            normalizedPointMaps[v] = pointMap;
         });
 
         const timestamps = Array.from(allTimestamps).sort();
@@ -904,8 +927,7 @@
         timestamps.forEach(ts => {
             csv += ts;
             vars.forEach(v => {
-                const points = plotData[v]?.points || [];
-                const point = points.find(p => p.date === ts);
+                const point = normalizedPointMaps[v]?.get(ts);
                 if (point) {
                     const trimmedFlag = point.flag && point.flag.trim() !== ' ' ? point.flag.trim() : '';
                     const flagValue = trimmedFlag !== '' ? trimmedFlag : 'Z';

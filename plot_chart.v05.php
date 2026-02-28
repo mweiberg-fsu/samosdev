@@ -46,6 +46,7 @@ $first = -9999;
 $last = false;
 
 $times = array();
+$specialTimestampResults = array();
 
 foreach($output as $line) {
   //echo $line . "\n";
@@ -62,7 +63,20 @@ foreach($output as $line) {
   } else {
     $data = explode(",",$line);
     if(count($data) == count($headers)) {
-      	$t = trim($data[1]);
+        $t = trim($data[1]);
+        if($t === '' || !preg_match('/^\d+$/', $t)) {
+        	for($i = 4; $i < count($data); $i+=2) {
+        		if(trim($headers[$i]) != "$var")
+    			continue;
+        		$value = trim($data[$i]);
+        		$flag = trim($data[$i+1]);
+        		if($value === '' || $value === null)
+        			continue;
+        		$missingTimestampMarker = ((string)$value === '-8888' || $flag === '$') ? '-8888' : '-9999';
+        		$specialTimestampResults[$missingTimestampMarker] = (int) $missingTimestampMarker;
+        	}
+        	continue;
+        }
       	if($hs > $t/10000 || $t/10000 > $he+1)
         	continue;
       	$variables['time'][trim($data[1])] = trim($data[1]);
@@ -273,6 +287,12 @@ if(isset($variables["$var"])) {
   }
 
  }
+
+foreach ($specialTimestampResults as $missingTimestampMarker => $missingTimestampValue) {
+  if (!isset($json_result[$missingTimestampMarker])) {
+    $json_result[$missingTimestampMarker] = $missingTimestampValue;
+  }
+}
 
 //print_r($time);
 //print_r($data_res);
