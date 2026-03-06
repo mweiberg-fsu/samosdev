@@ -55,7 +55,6 @@ $flags = array();
 $first = -9999;
 $last = false;
 $times = array();
-$specialTimestampFlags = array();
 
 // Loop through the output lines
 foreach ($output as $line) {
@@ -75,21 +74,6 @@ foreach ($output as $line) {
         if (count($data) == count($headers)) {
             $currentTimestamp = isset($data[1]) ? trim($data[1]) : '';
             if ($currentTimestamp === '' || !preg_match('/^\d+$/', $currentTimestamp)) {
-                for ($i = 4; $i < count($data); $i += 2) {
-                    if (trim($headers[$i]) != "$var") {
-                        continue;
-                    }
-
-                    $value = trim($data[$i]);
-                    $flag = trim($data[$i + 1]);
-
-                    if ($value === '' || $value === null) {
-                        continue;
-                    }
-
-                    $missingTimestampMarker = ((string)$value === '-8888' || $flag === '$') ? '-8888' : '-9999';
-                    $specialTimestampFlags[$missingTimestampMarker] = ($missingTimestampMarker === '-8888') ? '$' : '#';
-                }
                 continue;
             }
 
@@ -106,12 +90,13 @@ foreach ($output as $line) {
                 if (trim($headers[$i]) != "$var")
                     continue;
 
-                // Skip storing flag if value is empty (no data point to plot)
+                // Normalize empty raw values to explicit missing markers.
                 if ($value === '' || $value === null) {
-                    continue;
+                    $value = ($flag === '$') ? '-8888' : '-9999';
+                    $flag = ($value === '-8888') ? '$' : '#';
                 }
 
-                // Only add time for non-empty values to keep times and flags in sync
+                // Keep times for all raw records so flags align with the data endpoint.
                 array_push($times, trim($data[2]));
 
                 $variables[$variable_name][trim($data[1])] = $value;
@@ -156,11 +141,11 @@ for ($t = $first; $t < $last; $t += 100) {
         $flags[$var][$t] = '#';
     } elseif ((int)$variables[$var][$t] == -8888) {
         // -8888 indicates special missing value
-        $variables[$var][$t] = null;
+        $variables[$var][$t] = -8888;
         $flags[$var][$t] = '$';
     } elseif ((int)$variables[$var][$t] == -9999) {
         // -9999 indicates missing value
-        $variables[$var][$t] = null;
+        $variables[$var][$t] = -9999;
         $flags[$var][$t] = '#';
     } else {
         $last_good = $variables[$var][$t];
@@ -236,12 +221,6 @@ foreach ($times as $minutes) {
 for ($k = 0; $k < count($times); $k++) {
     $addingFiveMinutes = strtotime('1980-01-01 00:00:00 +' . $times[$k] . ' minute');
     $json_result[date('Y-m-d H:i:s', $addingFiveMinutes)] = $flags_arr[$k];
-}
-
-foreach ($specialTimestampFlags as $missingTimestampMarker => $missingTimestampFlag) {
-    if (!isset($json_result[$missingTimestampMarker])) {
-        $json_result[$missingTimestampMarker] = $missingTimestampFlag;
-    }
 }
 
 // Output JSON result

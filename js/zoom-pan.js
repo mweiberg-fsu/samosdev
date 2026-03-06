@@ -202,20 +202,21 @@
             const points = (data[v]?.points || [])
                 .map(p => {
                     const dateObj = parseTime(p.date);
+                    const numericValue = p.value == null ? null : Number(p.value);
+                    const value = (numericValue === -9999 || numericValue === -8888) ? null : numericValue;
                     return {
                         date: p.date,
                         dateObj,
                         ts: dateObj ? dateObj.getTime() : NaN,
-                        value: p.value == null ? null : Number(p.value),
+                        value,
                         flag: p.flag || ' '
                     };
                 })
                 .filter(p => {
-                    // Keep null values for gaps, but filter out invalid dates and NaN
-                    // Also exclude -9999/-8888 that weren't converted to null
+                    // Keep null values for gaps, but filter out invalid dates and NaN.
                     if (!p.dateObj || !Number.isFinite(p.ts)) return false;
                     if (p.value === null) return true;  // Keep nulls
-                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                    return !isNaN(p.value);
                 });
 
             processedData[v] = points;
@@ -459,6 +460,9 @@
 
             // Add flag circles on the line plot
             const flaggedPointsForVar = processedData[v].filter(p => {
+                if (p.value == null || Number.isNaN(p.value)) {
+                    return false;
+                }
                 const flag = p.flag ? p.flag.trim() : '';
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });

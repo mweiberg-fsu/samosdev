@@ -125,15 +125,19 @@
 
         vars.forEach((v) => {
             const points = (plotData[v]?.points || [])
-                .map((p) => ({
-                    date: p.date,
-                    value: p.value == null ? null : Number(p.value),
-                    flag: p.flag || ' '
-                }))
+                .map((p) => {
+                    const numericValue = p.value == null ? null : Number(p.value);
+                    const value = (numericValue === -9999 || numericValue === -8888) ? null : numericValue;
+                    return {
+                        date: p.date,
+                        value,
+                        flag: p.flag || ' '
+                    };
+                })
                 .filter((p) => {
                     // Keep null values for gaps
                     if (p.value === null) return true;
-                    return !Number.isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                    return !Number.isNaN(p.value);
                 });
 
             processedData[v] = points;
@@ -416,6 +420,9 @@
 
             // Add flag circles on polar plot
             const flaggedPointsForVar = unwrappedPoints.filter(p => {
+                if (p.originalValue == null || Number.isNaN(p.originalValue)) {
+                    return false;
+                }
                 const flag = p.flag ? p.flag.trim() : '';
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });

@@ -206,19 +206,20 @@
                 .map(p => {
                     const date = p.date == null ? '' : String(p.date).trim();
                     const parsedDate = date ? parseTime(date) : null;
+                    const numericValue = p.value == null ? null : Number(p.value);
+                    const value = (numericValue === -9999 || numericValue === -8888) ? null : numericValue;
                     return {
                         date,
                         parsedDate,
-                        value: p.value == null ? null : Number(p.value),
+                        value,
                         flag: p.flag || ' '
                     };
                 })
                 .filter(p => {
                     if (!p.parsedDate) return false;
-                    // Only filter out invalid data (NaN), but keep null values for gaps
-                    // The line generator's .defined() will handle nulls
+                    // Keep null values for visible gaps between valid points.
                     if (p.value === null) return true;  // Keep nulls
-                    return !isNaN(p.value) && p.value !== -9999 && p.value !== -8888;
+                    return !isNaN(p.value);
                 });
             allValidPoints.push(...processedData[v].filter(p => p.value !== null));
         });
@@ -499,6 +500,9 @@
             const points = processedData[v] || [];
             console.log(`Variable ${v} has ${points.length} points`);
             points.forEach(p => {
+                if (p.value == null || Number.isNaN(p.value)) {
+                    return;
+                }
                 const flag = p.flag ? p.flag.trim() : '';
                 if (flag) {
                     console.log(`Point at ${p.date}: flag='${flag}'`);
@@ -572,6 +576,9 @@
 
             // Add flag circles on the line plot
             const flaggedPointsForVar = points.filter(p => {
+                if (p.value == null || Number.isNaN(p.value)) {
+                    return false;
+                }
                 const flag = p.flag ? p.flag.trim() : '';
                 return flag && flag !== ' ' && flag !== 'Z' && flagColors[flag];
             });
@@ -592,8 +599,8 @@
                     const flag = d.flag ? d.flag.trim() : '';
                     return flagColors[flag] || '#444';
                 })
-                .attr('stroke', '#000')
-                .attr('stroke-width', 1.5)
+                .attr('stroke', 'none')
+                .attr('stroke-width', 0)
                 .style('opacity', 0.9)
                 .style('cursor', 'pointer');
 

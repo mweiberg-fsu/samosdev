@@ -157,6 +157,14 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
       }
 
       $flag_by_index = array_values($flags_raw);
+      $flags_are_timestamp_keyed = false;
+      foreach ($flags_raw as $flagKey => $unusedFlagValue) {
+        $flagKey = (string)$flagKey;
+        if (strpos($flagKey, '-') !== false || strpos($flagKey, ':') !== false || strpos($flagKey, ' ') !== false) {
+          $flags_are_timestamp_keyed = true;
+          break;
+        }
+      }
       $points = array();
       $flag_index = 0;
       $rawCount = count($values);
@@ -165,26 +173,54 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
 
       foreach ($values as $ts => $val) {
         $timePart = substr($ts, 11, 5);
-        if ($filterStart && $timePart < $filterStart) { $timeFiltered++; $flag_index++; continue; }
-        if ($filterEnd && $timePart > $filterEnd) { $timeFiltered++; $flag_index++; continue; }
+        if ($filterStart && $timePart < $filterStart) {
+          $timeFiltered++;
+          if (!$flags_are_timestamp_keyed) {
+            $flag_index++;
+          }
+          continue;
+        }
+        if ($filterEnd && $timePart > $filterEnd) {
+          $timeFiltered++;
+          if (!$flags_are_timestamp_keyed) {
+            $flag_index++;
+          }
+          continue;
+        }
         // Include null values - they create gaps in the plot
         // Don't filter them out
 
-        // Prefer timestamp-aligned flag to avoid index drift on missing values
+        if (is_string($val)) {
+          $val = trim($val);
+        }
+
+        $isMissingValue = ($val === '' || $val === null || (string)$val === '-9999' || (string)$val === '-8888');
+
+        // Prefer timestamp-aligned flags. Only use index fallback for legacy numeric-key payloads.
         if (isset($flags_raw[$ts])) {
-          $flag = $flags_raw[$ts];
-        } elseif (isset($flag_by_index[$flag_index])) {
-          $flag = $flag_by_index[$flag_index];
+          $flag = trim((string)$flags_raw[$ts]);
+        } elseif (!$flags_are_timestamp_keyed && isset($flag_by_index[$flag_index])) {
+          $flag = trim((string)$flag_by_index[$flag_index]);
         } else {
           $flag = ' ';
         }
 
-        if ($val === '') {
-          $val = null;
+        // Normalize missing values to explicit sentinels and suppress plottable QC flags.
+        if ($val === '' || $val === null) {
+          $val = ($flag === '$') ? '-8888' : '-9999';
+          $isMissingValue = true;
         }
 
-        // Use Z flag if available, otherwise use flag from endpoint
-        if ($flag === ' ' || $flag === '') {
+        if ($isMissingValue) {
+          if ((string)$val === '-8888' || $flag === '$') {
+            $val = '-8888';
+            $flag = '$';
+          } else {
+            $val = '-9999';
+            $flag = '#';
+          }
+        } elseif ($flag === ' ' || $flag === '') {
+          // Use Z flag if available, otherwise use flag from endpoint.
           $flag = $zFlagsByVar[$var] ?? ' ';
         }
 
@@ -193,7 +229,9 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
           'value' => $val,
           'flag' => $flag
         );
-        $flag_index++;
+        if (!$flags_are_timestamp_keyed) {
+          $flag_index++;
+        }
       }
 
       if (!empty($points)) {
