@@ -74,17 +74,21 @@ function renderShipTrack(payload) {
                 const rawLon = lonEntry ? lonEntry[1] : null;
 
                 // remove UTF issues with parseFloat
-                const latNum = parseFloat(String(rawLat).replace(/[^\d.-]/g, ''));
-                const lonNum = parseFloat(String(rawLon).replace(/[^\d.-]/g, ''));
+                const latParsed = parseFloat(String(rawLat).replace(/[^\d.-]/g, ''));
+                const lonParsed = parseFloat(String(rawLon).replace(/[^\d.-]/g, ''));
 
-                if (isNaN(latNum) || isNaN(lonNum)) continue;
+                if (isNaN(latParsed) || isNaN(lonParsed)) continue;
+
+                // Cap coordinates to 2 decimal places for both display and mapping.
+                const latNum = Math.round(latParsed * 100) / 100;
+                const lonNum = Math.round(lonParsed * 100) / 100;
 
                 points.push([latNum, lonNum, time]);
 
                 rows += `<tr>
         <td>${time}</td>
-        <td style="text-align:right;">${latNum.toFixed(3)}&deg</td>
-        <td style="text-align:right;">${lonNum.toFixed(3)}&deg</td>
+            <td style="text-align:right;">${latNum.toFixed(2)}&deg</td>
+            <td style="text-align:right;">${lonNum.toFixed(2)}&deg</td>
     </tr>`;
                 validCount++;
             }
