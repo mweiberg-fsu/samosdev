@@ -217,7 +217,8 @@
                     if (!p.dateObj || !Number.isFinite(p.ts)) return false;
                     if (p.value === null) return true;  // Keep nulls
                     return !isNaN(p.value);
-                });
+                })
+                .sort((a, b) => a.ts - b.ts);
 
             processedData[v] = points;
             allValidPoints.push(...points.filter(p => p.value !== null));

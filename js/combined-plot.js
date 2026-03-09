@@ -206,21 +206,24 @@
                 .map(p => {
                     const date = p.date == null ? '' : String(p.date).trim();
                     const parsedDate = date ? parseTime(date) : null;
+                    const ts = parsedDate ? parsedDate.getTime() : NaN;
                     const numericValue = p.value == null ? null : Number(p.value);
                     const value = (numericValue === -9999 || numericValue === -8888) ? null : numericValue;
                     return {
                         date,
                         parsedDate,
+                        ts,
                         value,
                         flag: p.flag || ' '
                     };
                 })
                 .filter(p => {
-                    if (!p.parsedDate) return false;
+                    if (!p.parsedDate || !Number.isFinite(p.ts)) return false;
                     // Keep null values for visible gaps between valid points.
                     if (p.value === null) return true;  // Keep nulls
                     return !isNaN(p.value);
-                });
+                })
+                .sort((a, b) => a.ts - b.ts);
             allValidPoints.push(...processedData[v].filter(p => p.value !== null));
         });
 
