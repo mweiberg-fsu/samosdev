@@ -191,8 +191,8 @@
         // Prevent body scrolling when modal is open
         document.body.style.overflow = 'hidden';
 
-        const parseTime = d3.timeParse('%Y-%m-%d %H:%M:%S');
-        const formatTime = d3.timeFormat('%H:%M');
+        const parseTime = d3.utcParse('%Y-%m-%d %H:%M:%S');
+        const formatTime = d3.utcFormat('%H:%M');
 
         // Process data
         const processedData = {};
@@ -264,7 +264,7 @@
         const height = Math.max(containerHeight - margin.top - margin.bottom, 300);
 
         // Base X scale
-        const baseX = d3.scaleTime()
+        const baseX = d3.scaleUtc()
             .domain(d3.extent(allValidPoints, d => d.dateObj))
             .range([0, width]);
 
@@ -493,7 +493,7 @@
                 .append('title')
                 .text(d => {
                     const flag = d.flag ? d.flag.trim() : '';
-                    const timeStr = d3.timeFormat('%H:%M')(d.dateObj);
+                    const timeStr = d3.utcFormat('%H:%M')(d.dateObj);
                     return `Flag: ${flag} at ${timeStr}`;
                 });
 
@@ -598,9 +598,9 @@
 
         const updateXAxis = (scale) => {
             const minutesSpan = (scale.domain()[1] - scale.domain()[0]) / (1000 * 60);
-            let tickInterval = d3.timeMinute.every(15);
-            if (minutesSpan <= 30) tickInterval = d3.timeMinute.every(2);
-            else if (minutesSpan <= 120) tickInterval = d3.timeMinute.every(5);
+            let tickInterval = d3.utcMinute.every(15);
+            if (minutesSpan <= 30) tickInterval = d3.utcMinute.every(2);
+            else if (minutesSpan <= 120) tickInterval = d3.utcMinute.every(5);
 
             const targetLabelSpacing = width < 700 ? 95 : 80;
             const maxTickLabels = Math.max(2, Math.floor(width / targetLabelSpacing));
@@ -609,7 +609,7 @@
 
             xAxisGroup.call(d3.axisBottom(scale)
                 .ticks(visibleTickCount)
-                .tickFormat(d3.timeFormat('%H:%M'))
+                .tickFormat(d3.utcFormat('%H:%M'))
             );
 
             xAxisGroup.selectAll('text')

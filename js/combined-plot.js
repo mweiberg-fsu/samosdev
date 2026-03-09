@@ -194,8 +194,8 @@
         const legendBuffer = 20;
         const dynamicTopMargin = titlePadding + titleHeight + titleLegendGap + (numLegendLines * legendLineHeight) + legendBuffer;
 
-        const parseTime = d3.timeParse('%Y-%m-%d %H:%M:%S');
-        const formatTime = d3.timeFormat('%H:%M');
+        const parseTime = d3.utcParse('%Y-%m-%d %H:%M:%S');
+        const formatTime = d3.utcFormat('%H:%M');
 
         // Process data + preserve flags
         const allValidPoints = [];
@@ -264,7 +264,7 @@
         const width = 790 - margin.left - margin.right;
         const height = outerChartHeight - margin.top - margin.bottom;
 
-        const x = d3.scaleTime()
+        const x = d3.scaleUtc()
             .domain(d3.extent(allValidPoints, d => d.parsedDate))
             .range([0, width]);
 
@@ -482,7 +482,7 @@
         svg.append('g')
             .attr('class', 'x axis')
             .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(x).ticks(12).tickFormat(d3.timeFormat('%H:%M')))
+            .call(d3.axisBottom(x).ticks(12).tickFormat(d3.utcFormat('%H:%M')))
             .selectAll('text')
             .style('text-anchor', 'end')
             .style('font-size', '15px')
@@ -611,7 +611,7 @@
                 .append('title')
                 .text(d => {
                     const flag = d.flag ? d.flag.trim() : '';
-                    const timeStr = d3.timeFormat('%H:%M')(d.parsedDate);
+                    const timeStr = d3.utcFormat('%H:%M')(d.parsedDate);
                     return `Flag: ${flag} at ${timeStr}`;
                 });
 
