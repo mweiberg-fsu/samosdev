@@ -483,8 +483,8 @@
                     const flag = d.flag ? d.flag.trim() : '';
                     return flagColors[flag] || '#444';
                 })
-                .attr('stroke', '#000')
-                .attr('stroke-width', 1.5)
+                .attr('stroke', 'none')
+                .attr('stroke-width', 0)
                 .style('opacity', 0.9)
                 .style('cursor', 'pointer');
 
