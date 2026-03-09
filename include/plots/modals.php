@@ -88,6 +88,7 @@ function RenderZoomModal()
         <button onclick=\"downloadZoomCSV()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;\">CSV</button>
         <button onclick=\"downloadZoomPlot()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;\">PNG</button>
         <button id=\"resetZoomBtn\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;\">Reset</button>
+        <button id=\"lockXAxisBtn\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#34495e; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;\">Lock X-axis</button>
         <button onclick=\"closeZoomModal()\" style=\"padding:8px 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;\">Close</button>
             </div>
         </div>
@@ -127,7 +128,7 @@ function RenderZoomModal()
             text-overflow:ellipsis;
       font-family:'Space Grotesk', 'Segoe UI', sans-serif;
         \">
-            Zoom: mouse wheel | Pan: click+drag | Reset: button
+            Zoom: mouse wheel | Pan: click+drag | Lock X-axis: Y-only zoom | Reset: button
         </div>
     </div>
 </div>";

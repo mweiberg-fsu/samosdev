@@ -5,6 +5,7 @@
     const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
     const zoomSelectionState = global.__zoomSelectionState || (global.__zoomSelectionState = {});
     const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
+    const zoomLockXAxisState = global.__zoomLockXAxisState || (global.__zoomLockXAxisState = {});
 
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
@@ -96,6 +97,9 @@
         window.__activeZoomPayload = payload;
         if (typeof zoomFlagsVisibleState[zoomStateKey] === 'undefined') {
             zoomFlagsVisibleState[zoomStateKey] = true;
+        }
+        if (typeof zoomLockXAxisState[zoomStateKey] === 'undefined') {
+            zoomLockXAxisState[zoomStateKey] = false;
         }
 
         // Delay chart rendering to ensure layout is complete
@@ -671,6 +675,9 @@
 
         // Zoom state
         let currentX = baseX.copy();
+        let xAxisLocked = zoomLockXAxisState[zoomStateKey] === true;
+        let lockedXScale = xAxisLocked ? currentX.copy() : null;
+        let latestZoomTransform = d3.zoomIdentity;
         const currentYScales = {};
         vars.forEach(v => currentYScales[v] = yScales[v].copy());
 
@@ -700,9 +707,15 @@
         };
 
         const applyZoomTransform = (transform) => {
-            currentX = transform.rescaleX(baseX);
+            latestZoomTransform = transform;
 
-            // Rescale each Y independently
+            if (xAxisLocked && lockedXScale) {
+                currentX = lockedXScale.copy();
+            } else {
+                currentX = transform.rescaleX(baseX);
+            }
+
+            // Keep Y scaling active even when X is locked.
             vars.forEach(v => {
                 currentYScales[v] = transform.rescaleY(yScales[v]);
             });
@@ -838,10 +851,31 @@
             zoomSelectionState[zoomStateKey] = new Set(selectedVars);
         };
 
+        const lockXAxisBtn = document.getElementById('lockXAxisBtn');
+        const updateLockXAxisButton = () => {
+            if (!lockXAxisBtn) return;
+            lockXAxisBtn.textContent = xAxisLocked ? 'Unlock X-axis' : 'Lock X-axis';
+            lockXAxisBtn.style.background = xAxisLocked ? '#f39c12' : '#34495e';
+        };
+
+        if (lockXAxisBtn) {
+            updateLockXAxisButton();
+            lockXAxisBtn.onclick = () => {
+                xAxisLocked = !xAxisLocked;
+                zoomLockXAxisState[zoomStateKey] = xAxisLocked;
+                lockedXScale = xAxisLocked ? currentX.copy() : null;
+                updateLockXAxisButton();
+                applyZoomTransform(latestZoomTransform);
+            };
+        }
+
         // Reset button
         const resetBtn = document.getElementById('resetZoomBtn');
         if (resetBtn) {
             resetBtn.onclick = () => {
+                if (xAxisLocked) {
+                    lockedXScale = baseX.copy();
+                }
                 svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
             };
         }
