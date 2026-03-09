@@ -353,7 +353,7 @@ function RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd, $title = 
     echo "      <button onclick=\"downloadCombinedPlot('$chartId')\">Download PNG</button>";
     echo "      <button onclick=\"downloadCombinedCSV('$chartId')\">Download CSV</button>";
     echo "      <button onclick=\"openZoomModal_$plotIndex()\">Zoom & Pan</button>";
-    echo "      <button onclick=\"openShipTrackModal()\">Ship Track</button>";
+    echo "      <button onclick=\"openShipTrackModal('$chartId')\">Ship Track</button>";
     echo "      <button onclick=\"togglePlotFlags('$chartId', this)\">Hide Flags</button>";
     echo "    </div>";
     echo "  </details>";

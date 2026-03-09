@@ -514,7 +514,7 @@ FORM;
   echo '      <button onclick="downloadCombinedPlot(\'combinedChart\')">Download PNG</button>';
   echo '      <button onclick="downloadCombinedCSV(\'combinedChart\')">Download CSV</button>';
   echo '      <button onclick="openZoomModal(\'combinedChart\')">Zoom & Pan</button>';
-  echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
+  echo '      <button onclick="openShipTrackModal(\'combinedChart\')">Ship Track</button>';
   echo '      <button onclick="togglePlotFlags(\'combinedChart\', this)">Hide Flags</button>';
   echo '    </div>';
   echo '  </details>';
@@ -530,6 +530,8 @@ FORM;
   echo '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>';
   echo "<script>
     // Store payload for zoom modal
+    window.__chartPayloads = window.__chartPayloads || {};
+    window.__chartPayloads['combinedChart'] = $jsPayload;
     window.__originalChartData = $jsPayload;
     window.__originalPolarData = $jsPayload;
     

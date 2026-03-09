@@ -402,15 +402,34 @@ function RenderModalFunctions()
   global $ship, $date, $order, $file_history_id, $SERVER;
   
   echo '<script>
-  function openShipTrackModal() {
+  function openShipTrackModal(chartId) {
       document.getElementById("shipTrackModal").style.display = "flex";
+    const payloadByChart = window.__chartPayloads || {};
+    const resolvedChartId = chartId || window.__activeShipTrackChartId || "";
+    let figurePayload = null;
+
+    if (resolvedChartId && payloadByChart[resolvedChartId]) {
+      figurePayload = payloadByChart[resolvedChartId];
+      window.__activeShipTrackChartId = resolvedChartId;
+    } else if (window.__originalChartData) {
+      figurePayload = window.__originalChartData;
+    } else {
+      const fallbackChartId = Object.keys(payloadByChart)[0];
+      if (fallbackChartId) {
+        window.__activeShipTrackChartId = fallbackChartId;
+        figurePayload = payloadByChart[fallbackChartId];
+      }
+    }
+
       if (typeof renderShipTrack === "function") {
           renderShipTrack({
               ship: "' . addslashes($ship) . '",
               date: "' . addslashes($date) . '",
               order: "' . addslashes($order) . '",
               history_id: "' . $file_history_id . '",
-              server: "' . $SERVER . '"
+        server: "' . $SERVER . '",
+        chartId: window.__activeShipTrackChartId || resolvedChartId || "",
+        figurePayload: figurePayload
           });
       }
   }
