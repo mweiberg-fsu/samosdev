@@ -226,7 +226,7 @@
 
         if (allValidPoints.length === 0) return;
 
-        const windDirectionVars = ['PL_WDIR', 'PL_WDIR2', 'PL_WDIR3'];
+        const windDirectionVars = ['DIR', 'DIR2', 'DIR3'];
         const color = d3.scaleOrdinal(d3.schemeCategory10).domain(vars);
 
         // Group variables by their units
