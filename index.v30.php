@@ -81,13 +81,14 @@ echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&o
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=4"><font size=1>[Z Flags]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=6&fbound=1"><font size=1>[Plot]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=6&fbound=0"><font size=1>[Plot (bound w/o flags)]</font></a>&nbsp;';
-echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=9"><font size=1>[Plot (new)]</font></a>&nbsp;';
-echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=10"><font size=1>[Plot (groups)]</font></a>&nbsp;';
-echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=7"><font size=1>[Plot (combined)]</font></a>&nbsp;';
 
 if ($_SESSION['level'] >= $google_map_min_user_level)
   echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=' . $order . '&history_id=', $file_history_id, '&mode=5"><font size=1>[Map]</font></a>';
-echo '<div>';
+echo '<br />';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=9"><font size=1>[Plot (new)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=10"><font size=1>[Plot (groups)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=7"><font size=1>[Plot (combined)]</font></a>&nbsp;';
+echo '</div>';
 echo '<br />';
 echo '<div style="margin-top: 1px;z-index:5">';
 $height = 250;
