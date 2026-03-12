@@ -88,6 +88,7 @@ echo '<br />';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=9"><font size=1>[Plot (new)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=10"><font size=1>[Plot (groups)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=7"><font size=1>[Plot (combined)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=11&fbound=0"><font size=1>[Plot (new bound w/o flags)]</font></a>&nbsp;';
 echo '</div>';
 echo '<br />';
 echo '<div style="margin-top: 1px;z-index:5">';
@@ -138,6 +139,10 @@ switch ($mode) {
     break;
     
   case 9:
+    InsertPlotNew();
+    break;
+
+  case 11:
     InsertPlotNew();
     break;
     

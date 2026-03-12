@@ -9,6 +9,12 @@ function InsertPlotNew()
 {
   global $file_history_id, $order, $ship, $date, $ship_id, $SERVER;
 
+  $currentMode = isset($_REQUEST['mode']) ? (int) $_REQUEST['mode'] : 9;
+  if ($currentMode !== 11) {
+    $currentMode = 9;
+  }
+  $fbound = isset($_REQUEST['fbound']) ? (int) $_REQUEST['fbound'] : (($currentMode === 11) ? 0 : 1);
+
   /* ---------- 1. GET VARIABLES ---------- */
   $selectedVars = array();
   $selectAllOnLoad = empty($_REQUEST['vars']) || !is_array($_REQUEST['vars']);
@@ -52,7 +58,7 @@ function InsertPlotNew()
   }
 
   /* ---------- 2. FORM ---------- */
-  $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=9";
+  $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=$currentMode&fbound=$fbound";
 
   echo <<<FORM
 <form method="POST" action="$actionUrl" id="plotNewForm">
@@ -124,10 +130,10 @@ FORM;
       'var' => $var,
       'version_no' => $ver,
       'units' => $info['units'],
-      'fbound' => isset($_REQUEST['fbound']) ? $_REQUEST['fbound'] : 1,
+      'fbound' => $fbound,
       'hs' => $hs,
       'he' => $he,
-      'mode' => 9,
+      'mode' => $currentMode,
     ));
 
     $urlMap[$var] = array(

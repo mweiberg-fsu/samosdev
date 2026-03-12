@@ -141,7 +141,7 @@ if($first%10000 != 0) {
  */
 //$last_good = $variables[$var][$first];\
 $last_good = isset($variables[$var][$first]) ? $variables[$var][$first] : null;
-$useGapMode = in_array($mode, array(7, 9, 10));
+$useGapMode = in_array($mode, array(7, 9, 10, 11));
 
 for($t = $first; $t < $last; $t+=100) {
   if($t%10000 == 6000) {
