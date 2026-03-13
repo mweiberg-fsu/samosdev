@@ -877,8 +877,8 @@
             zoomSelectionState[zoomStateKey] = new Set(selectedVars);
         };
 
-        const yLowerInput = document.getElementById('zoomYLowerInput');
         const yUpperInput = document.getElementById('zoomYUpperInput');
+        const yLowerInput = document.getElementById('zoomYLowerInput');
 
         const applyManualYInputsAndRefresh = () => {
             const lowerText = yLowerInput ? yLowerInput.value.trim() : '';
