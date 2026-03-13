@@ -85,12 +85,12 @@ function RenderZoomModal()
         <span style=\"font-size:12px; opacity:0.8;\">Explore fine detail with pan + zoom</span>
       </div>
             <div style=\"display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;\">
-        <button onclick=\"downloadZoomCSV()\" style=\"width:88px; height:34px; padding:0; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">CSV</button>
-        <button onclick=\"downloadZoomPlot()\" style=\"width:88px; height:34px; padding:0; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">PNG</button>
-        <button id=\"resetZoomBtn\" style=\"width:88px; height:34px; padding:0; font-size:12px; cursor:pointer; background:#e67e22; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">Reset</button>
+        <button onclick=\"downloadZoomCSV()\" style=\"height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">CSV</button>
+        <button onclick=\"downloadZoomPlot()\" style=\"height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">PNG</button>
+        <button id=\"resetZoomBtn\" style=\"height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e67e22; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">Reset</button>
         <input id=\"zoomYUpperInput\" type=\"number\" step=\"any\" placeholder=\"Y max\" title=\"Set upper Y-axis limit\" style=\"width:96px; padding:7px 8px; font-size:12px; background:#ffffff; color:#1f2d3d; border:1px solid #d0d8e4; border-radius:6px; font-weight:600; flex-shrink:0;\" />
         <input id=\"zoomYLowerInput\" type=\"number\" step=\"any\" placeholder=\"Y min\" title=\"Set lower Y-axis limit\" style=\"width:96px; padding:7px 8px; font-size:12px; background:#ffffff; color:#1f2d3d; border:1px solid #d0d8e4; border-radius:6px; font-weight:600; flex-shrink:0;\" />
-        <button onclick=\"closeZoomModal()\" style=\"width:88px; height:34px; padding:0; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">Close</button>
+        <button onclick=\"closeZoomModal()\" style=\"height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0; text-align:center;\">Close</button>
             </div>
         </div>
         <div style=\"
