@@ -5,7 +5,7 @@
     const combinedSelectionState = global.__combinedSelectionState || (global.__combinedSelectionState = {});
     const zoomSelectionState = global.__zoomSelectionState || (global.__zoomSelectionState = {});
     const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
-    const zoomLockXAxisState = global.__zoomLockXAxisState || (global.__zoomLockXAxisState = {});
+    const zoomYLimitsState = global.__zoomYLimitsState || (global.__zoomYLimitsState = {});
 
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
@@ -98,8 +98,8 @@
         if (typeof zoomFlagsVisibleState[zoomStateKey] === 'undefined') {
             zoomFlagsVisibleState[zoomStateKey] = true;
         }
-        if (typeof zoomLockXAxisState[zoomStateKey] === 'undefined') {
-            zoomLockXAxisState[zoomStateKey] = false;
+        if (!zoomYLimitsState[zoomStateKey]) {
+            zoomYLimitsState[zoomStateKey] = { lower: '', upper: '' };
         }
 
         // Delay chart rendering to ensure layout is complete
@@ -675,8 +675,9 @@
 
         // Zoom state
         let currentX = baseX.copy();
-        let xAxisLocked = zoomLockXAxisState[zoomStateKey] === true;
-        let lockedXScale = xAxisLocked ? currentX.copy() : null;
+        const yLimitInputsState = zoomYLimitsState[zoomStateKey] || { lower: '', upper: '' };
+        let manualYLower = yLimitInputsState.lower;
+        let manualYUpper = yLimitInputsState.upper;
         let latestZoomTransform = d3.zoomIdentity;
         const currentYScales = {};
         vars.forEach(v => currentYScales[v] = yScales[v].copy());
@@ -706,19 +707,44 @@
             });
         };
 
+        const applyManualYLimits = () => {
+            const lowerText = String(manualYLower ?? '').trim();
+            const upperText = String(manualYUpper ?? '').trim();
+            const lowerVal = lowerText === '' ? null : Number(lowerText);
+            const upperVal = upperText === '' ? null : Number(upperText);
+            const hasLower = lowerText !== '' && Number.isFinite(lowerVal);
+            const hasUpper = upperText !== '' && Number.isFinite(upperVal);
+
+            if (!hasLower && !hasUpper) {
+                return;
+            }
+
+            if (hasLower && hasUpper && lowerVal >= upperVal) {
+                return;
+            }
+
+            vars.forEach(v => {
+                const scale = currentYScales[v];
+                const domain = scale.domain();
+                const nextLower = hasLower ? lowerVal : domain[0];
+                const nextUpper = hasUpper ? upperVal : domain[1];
+
+                if (nextLower < nextUpper) {
+                    scale.domain([nextLower, nextUpper]);
+                }
+            });
+        };
+
         const applyZoomTransform = (transform) => {
             latestZoomTransform = transform;
 
-            if (xAxisLocked && lockedXScale) {
-                currentX = lockedXScale.copy();
-            } else {
-                currentX = transform.rescaleX(baseX);
-            }
+            currentX = transform.rescaleX(baseX);
 
-            // Keep Y scaling active even when X is locked.
             vars.forEach(v => {
                 currentYScales[v] = transform.rescaleY(yScales[v]);
             });
+
+            applyManualYLimits();
 
             updateXAxis(currentX);
             updateYAxes();
@@ -851,30 +877,60 @@
             zoomSelectionState[zoomStateKey] = new Set(selectedVars);
         };
 
-        const lockXAxisBtn = document.getElementById('lockXAxisBtn');
-        const updateLockXAxisButton = () => {
-            if (!lockXAxisBtn) return;
-            lockXAxisBtn.textContent = xAxisLocked ? 'Unlock X-axis' : 'Lock X-axis';
-            lockXAxisBtn.style.background = xAxisLocked ? '#f39c12' : '#34495e';
+        const yLowerInput = document.getElementById('zoomYLowerInput');
+        const yUpperInput = document.getElementById('zoomYUpperInput');
+
+        const applyManualYInputsAndRefresh = () => {
+            const lowerText = yLowerInput ? yLowerInput.value.trim() : '';
+            const upperText = yUpperInput ? yUpperInput.value.trim() : '';
+
+            const lowerIsValid = lowerText === '' || Number.isFinite(Number(lowerText));
+            const upperIsValid = upperText === '' || Number.isFinite(Number(upperText));
+            const bothProvided = lowerText !== '' && upperText !== '';
+            const validOrder = !bothProvided || Number(lowerText) < Number(upperText);
+
+            if (yLowerInput) yLowerInput.style.borderColor = lowerIsValid ? '#d0d8e4' : '#e74c3c';
+            if (yUpperInput) yUpperInput.style.borderColor = upperIsValid ? '#d0d8e4' : '#e74c3c';
+
+            if (!lowerIsValid || !upperIsValid || !validOrder) {
+                if (bothProvided && !validOrder) {
+                    if (yLowerInput) yLowerInput.style.borderColor = '#e74c3c';
+                    if (yUpperInput) yUpperInput.style.borderColor = '#e74c3c';
+                }
+                return;
+            }
+
+            manualYLower = lowerText;
+            manualYUpper = upperText;
+            zoomYLimitsState[zoomStateKey] = { lower: manualYLower, upper: manualYUpper };
+
+            applyZoomTransform(latestZoomTransform);
         };
 
-        if (lockXAxisBtn) {
-            updateLockXAxisButton();
-            lockXAxisBtn.onclick = () => {
-                xAxisLocked = !xAxisLocked;
-                zoomLockXAxisState[zoomStateKey] = xAxisLocked;
-                lockedXScale = xAxisLocked ? currentX.copy() : null;
-                updateLockXAxisButton();
-                applyZoomTransform(latestZoomTransform);
-            };
+        if (yLowerInput) {
+            yLowerInput.value = manualYLower;
+            yLowerInput.onchange = applyManualYInputsAndRefresh;
+        }
+
+        if (yUpperInput) {
+            yUpperInput.value = manualYUpper;
+            yUpperInput.onchange = applyManualYInputsAndRefresh;
         }
 
         // Reset button
         const resetBtn = document.getElementById('resetZoomBtn');
         if (resetBtn) {
             resetBtn.onclick = () => {
-                if (xAxisLocked) {
-                    lockedXScale = baseX.copy();
+                manualYLower = '';
+                manualYUpper = '';
+                zoomYLimitsState[zoomStateKey] = { lower: '', upper: '' };
+                if (yLowerInput) {
+                    yLowerInput.value = '';
+                    yLowerInput.style.borderColor = '#d0d8e4';
+                }
+                if (yUpperInput) {
+                    yUpperInput.value = '';
+                    yUpperInput.style.borderColor = '#d0d8e4';
                 }
                 svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
             };
