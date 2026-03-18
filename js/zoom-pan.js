@@ -767,12 +767,133 @@
 
         const zoom = d3.zoom()
             .scaleExtent([1, 50])
+            .filter(event => !event.shiftKey)
             .on('zoom', (event) => {
                 pendingZoomTransform = event.transform;
                 scheduleZoomRender();
             });
 
         svg.call(zoom);
+
+        // === SHIFT+DRAG BOUNDING BOX ZOOM ===
+        // Append brush rect on top of everything in SVG space
+        const brushRect = svg.append('rect')
+            .attr('class', 'zoom-brush-rect')
+            .style('fill', 'rgba(70, 130, 180, 0.12)')
+            .style('stroke', '#4682b4')
+            .style('stroke-width', '1.5px')
+            .style('stroke-dasharray', '5,3')
+            .style('pointer-events', 'none')
+            .style('display', 'none');
+
+        let brushOrigin = null;
+
+        // Clean up any previous window-level listeners from a prior render
+        if (window.__zoomBrushCleanup) {
+            window.__zoomBrushCleanup();
+            window.__zoomBrushCleanup = null;
+        }
+
+        svg.on('mousedown.zoomBrush', function(event) {
+            if (!event.shiftKey) return;
+            event.preventDefault();
+            const [mx, my] = d3.pointer(event, svg.node());
+            // Only start within plot area bounds
+            if (mx < margin.left || mx > margin.left + width ||
+                my < margin.top  || my > margin.top  + height) return;
+            brushOrigin = [mx, my];
+            brushRect
+                .attr('x', mx).attr('y', my)
+                .attr('width', 0).attr('height', 0)
+                .style('display', null);
+        });
+
+        svg.on('mousemove.zoomBrush', function(event) {
+            if (!brushOrigin) return;
+            svg.style('cursor', 'crosshair');
+            const [mx, my] = d3.pointer(event, svg.node());
+            const cx = Math.max(margin.left,  Math.min(margin.left + width,  mx));
+            const cy = Math.max(margin.top,   Math.min(margin.top  + height, my));
+            brushRect
+                .attr('x', Math.min(brushOrigin[0], cx))
+                .attr('y', Math.min(brushOrigin[1], cy))
+                .attr('width',  Math.abs(cx - brushOrigin[0]))
+                .attr('height', Math.abs(cy - brushOrigin[1]));
+        });
+
+        const finishBrush = (event) => {
+            if (!brushOrigin) return;
+            brushRect.style('display', 'none');
+            svg.style('cursor', null);
+
+            const [mx, my] = event
+                ? d3.pointer(event, svg.node())
+                : [brushOrigin[0], brushOrigin[1]];
+
+            const cx = Math.max(margin.left,  Math.min(margin.left + width,  mx));
+            const cy = Math.max(margin.top,   Math.min(margin.top  + height, my));
+
+            const x0_plot = Math.min(brushOrigin[0], cx) - margin.left;
+            const x1_plot = Math.max(brushOrigin[0], cx) - margin.left;
+            const y0_plot = Math.min(brushOrigin[1], cy) - margin.top;
+            const y1_plot = Math.max(brushOrigin[1], cy) - margin.top;
+
+            brushOrigin = null;
+
+            if ((x1_plot - x0_plot) < 5 || (y1_plot - y0_plot) < 5) return;
+
+            // Compute new zoom k from the X selection extent
+            const x0Date = currentX.invert(x0_plot);
+            const x1Date = currentX.invert(x1_plot);
+            const baseX0 = baseX(x0Date);
+            const baseX1 = baseX(x1Date);
+            if (baseX1 === baseX0) return;
+            const newK  = width / (baseX1 - baseX0);
+            const newTx = -newK * baseX0;
+
+            // Compute ty to center the Y selection using the primary Y scale
+            const primaryVar = vars.find(v => selectedVars.has(v)) || vars[0];
+            const primaryBase = yScales[primaryVar];
+            const yMidVal = currentYScales[primaryVar].invert((y0_plot + y1_plot) / 2);
+            const newTy = height / 2 - newK * primaryBase(yMidVal);
+
+            const newTransform = d3.zoomIdentity.translate(newTx, newTy).scale(newK);
+            svg.transition().duration(250).call(zoom.transform, newTransform);
+        };
+
+        svg.on('mouseup.zoomBrush', finishBrush);
+
+        // Cancel/finish brush if mouse is released outside SVG
+        const onWindowMouseUp = (event) => {
+            if (!brushOrigin) return;
+            brushRect.style('display', 'none');
+            svg.style('cursor', null);
+            brushOrigin = null;
+        };
+        window.addEventListener('mouseup', onWindowMouseUp);
+
+        // Change cursor when Shift is held over the chart
+        const onKeyDown = (e) => {
+            if (e.key === 'Shift') svg.style('cursor', 'crosshair');
+        };
+        const onKeyUp = (e) => {
+            if (e.key === 'Shift') {
+                if (!brushOrigin) svg.style('cursor', null);
+                else {
+                    brushRect.style('display', 'none');
+                    brushOrigin = null;
+                    svg.style('cursor', null);
+                }
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup',   onKeyUp);
+
+        window.__zoomBrushCleanup = () => {
+            window.removeEventListener('mouseup', onWindowMouseUp);
+            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keyup',   onKeyUp);
+        };
 
         // Tooltip (exact match to combined-plot.js)
         const hoverTooltip = d3.select('body')
@@ -1018,7 +1139,13 @@
         const tooltip = document.getElementById('zoom-hover-tooltip');
         if (tooltip) tooltip.remove();
         if (modal) modal.style.display = 'none';
-        
+
+        // Clean up brush event listeners
+        if (window.__zoomBrushCleanup) {
+            window.__zoomBrushCleanup();
+            window.__zoomBrushCleanup = null;
+        }
+
         // Re-enable body scrolling when modal is closed
         document.body.style.overflow = 'auto';
     };
