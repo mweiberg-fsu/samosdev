@@ -19,6 +19,7 @@ include_once 'include/global.inc.php';
 require_once 'include/helpers.php';
 require_once 'include/plots/timeseries_plot.php';
 require_once 'include/plots/combined_plot.php';
+require_once 'include/plots/polar_plot.php';
 require_once 'include/plots/plot_new.php';
 require_once 'include/plots/plot_all_groups.php';
 require_once 'include/plots/multifunction_plot.php';
@@ -88,6 +89,7 @@ echo '<br />';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=9"><font size=1>[Plot (new)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=10"><font size=1>[Plot (groups)]</font></a>&nbsp;';
 echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=7"><font size=1>[Plot (combined)]</font></a>&nbsp;';
+echo '<a href="index.php?ship=' . $ship . '&id=', $ship_id, '&date=', $date, '&order=', $order, '&history_id=', $file_history_id, '&mode=12"><font size=1>[Polar Plots]</font></a>&nbsp;';
 echo '</div>';
 echo '<br />';
 echo '<div style="margin-top: 1px;z-index:5">';
@@ -147,6 +149,10 @@ switch ($mode) {
     
   case 10:
     InsertPlotAllGroups();
+    break;
+
+  case 12:
+    InsertPolarPlot();
     break;
   
   default:
