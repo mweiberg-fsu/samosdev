@@ -209,11 +209,16 @@ FORM;
   $payload = json_encode(array(
     'plotData' => $plotData,
     'units' => $unitsMap,
+    'longNames' => array(
+      $selectedDirVar => $selectedDirVar,
+      $selectedColorVar => $selectedColorVar,
+    ),
     'dirVar' => $selectedDirVar,
     'colorVar' => $selectedColorVar,
     'ship' => $ship,
     'shipName' => get_ship_name($ship_id),
     'date' => $date,
+    'order' => $order,
     'hs' => $hs,
     'he' => $he,
   ));
@@ -234,6 +239,7 @@ FORM;
   echo '    <div class="polar-plot-menu-dropdown">';
   echo '      <button onclick="downloadPolarSinglePng()">Download PNG</button>';
   echo '      <button onclick="downloadPolarSingleCsv()">Download CSV</button>';
+  echo '      <button onclick="openZoomModal(\'polarSingleChart\')">Zoom & Pan</button>';
   echo '    </div>';
   echo '  </details>';
   echo '  <div id="polarSingleChart" style="width:790px; height:620px;"></div>';
@@ -244,6 +250,8 @@ FORM;
   echo "  const payload = $payload;\n";
   echo "  const container = document.getElementById('polarSingleChart');\n";
   echo "  if (!container || !window.d3) return;\n";
+  echo "  window.__chartPayloads = window.__chartPayloads || {};\n";
+  echo "  window.__chartPayloads['polarSingleChart'] = payload;\n";
   echo "\n";
   echo "  window.__polarSingleExport = null;\n";
   echo "\n";
@@ -634,4 +642,8 @@ FORM;
   echo "    .text(colorVar);\n";
   echo "})();\n";
   echo "</script>\n";
+  echo '<script src="js/zoom-pan.js"></script>';
+
+  include 'include/plots/modals.php';
+  RenderZoomModal();
 }
