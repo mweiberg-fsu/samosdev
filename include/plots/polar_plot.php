@@ -41,7 +41,7 @@ function InsertPolarPlot()
   $colorVars = array();
 
   foreach ($allVars as $varName => $meta) {
-    if (preg_match('/^DIR\d*$/i', $varName)) {
+    if (preg_match('/^(DIR\d*|PL_WDIR\d*)$/i', $varName)) {
       $dirVars[] = $varName;
     }
     if (preg_match('/^PL_WSPD\d*$/i', $varName)) {
