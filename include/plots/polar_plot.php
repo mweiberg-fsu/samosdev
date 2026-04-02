@@ -239,7 +239,7 @@ FORM;
   echo '    <div class="polar-plot-menu-dropdown">';
   echo '      <button onclick="downloadPolarSinglePng()">Download PNG</button>';
   echo '      <button onclick="downloadPolarSingleCsv()">Download CSV</button>';
-  echo '      <button onclick="resetPolarSingleZoom()">Reset Zoom</button>';
+  echo '      <button onclick="openPolarZoomModal()">Zoom &amp; Pan</button>';
   echo '    </div>';
   echo '  </details>';
   echo '  <div id="polarSingleChart" style="width:790px; height:620px;"></div>';
@@ -481,19 +481,6 @@ FORM;
   echo "\n";
   echo "  const g = svg.append('g').attr('transform', 'translate(' + cx + ',' + cy + ')');\n";
   echo "\n";
-  echo "  const zoomBehavior = d3.zoom()\n";
-  echo "    .scaleExtent([0.7, 8])\n";
-  echo "    .on('start', () => { tooltip.style('opacity', 0); })\n";
-  echo "    .on('zoom', (event) => {\n";
-  echo "      g.attr('transform', 'translate(' + cx + ',' + cy + ') ' + event.transform);\n";
-  echo "    });\n";
-  echo "\n";
-  echo "  svg.call(zoomBehavior);\n";
-  echo "\n";
-  echo "  window.resetPolarSingleZoom = function() {\n";
-  echo "    svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);\n";
-  echo "  };\n";
-  echo "\n";
   echo "  const timeTicks = r.ticks(4);\n";
   echo "  g.selectAll('.grid-circle')\n";
   echo "    .data(timeTicks)\n";
@@ -652,5 +639,241 @@ FORM;
   echo "    .style('font-weight', 'bold')\n";
   echo "    .text(colorVar);\n";
   echo "})();\n";
+  echo "</script>\n";
+
+  // ── Polar Zoom Modal ─────────────────────────────────────────────────────
+  echo '
+<style>
+  #polarZoomModal {
+    --pzm-width: 90vw;
+    --pzm-height: 90vh;
+    --pzm-max-width: calc(100vw - 32px);
+    --pzm-max-height: calc(100vh - 32px);
+  }
+  @media (max-width: 768px) {
+    #polarZoomModal { --pzm-width: 95vw; --pzm-height: 95vh; --pzm-max-width: calc(100vw - 16px); --pzm-max-height: calc(100vh - 16px); }
+  }
+  @media (min-width: 1920px) {
+    #polarZoomModal { --pzm-width: 85vw; --pzm-height: 85vh; }
+  }
+</style>
+<div id="polarZoomModal" style="
+    display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+    width:100%; height:100%;
+    background:radial-gradient(circle at 15% 20%, rgba(41,128,185,0.35), rgba(44,62,80,0.9));
+    z-index:9999; justify-content:center; align-items:center;
+    padding:0; margin:0; overflow:hidden;">
+  <div style="
+      position:relative; background:#ffffff; padding:0;
+      border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.4);
+      width:var(--pzm-width); height:var(--pzm-height);
+      max-width:var(--pzm-max-width); max-height:var(--pzm-max-height);
+      overflow:hidden; display:flex; flex-direction:column;
+      box-sizing:border-box; border:1px solid rgba(255,255,255,0.4);">
+    <div style="
+        display:flex; justify-content:space-between; align-items:center;
+        padding:14px 18px;
+        background:linear-gradient(135deg, #0f4c75, #1b6ca8, #3282b8);
+        color:white; border-bottom:2px solid rgba(255,255,255,0.2);
+        border-radius:16px 16px 0 0; flex-shrink:0; box-sizing:border-box;
+        gap:10px; flex-wrap:wrap; font-family:\'Space Grotesk\',\'Segoe UI\',sans-serif;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px;">Zoom &amp; Pan</h2>
+        <span style="font-size:12px; opacity:0.8;">Polar Plot &mdash; mouse wheel to zoom, drag to pan</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;">
+        <button onclick="resetPolarZoom()" style="height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e67e22; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Reset</button>
+        <button onclick="closePolarZoomModal()" style="height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Close</button>
+      </div>
+    </div>
+    <div style="
+        flex:1; overflow:hidden; display:flex; flex-direction:column;
+        box-sizing:border-box; min-height:0; min-width:0;
+        padding:10px;
+        background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,248,252,0.95));">
+      <div id="polarZoomChartContainer" style="
+          flex:1; width:100%; box-sizing:border-box; overflow:hidden;
+          background:#ffffff; border-radius:12px; border:1px solid #d9e3ef;"></div>
+    </div>
+    <div style="
+        text-align:center; color:#5a6b7b; font-size:12px;
+        padding:10px 15px; flex-shrink:0; background:#f4f7fb;
+        border-top:1px solid #d9e3ef; box-sizing:border-box;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        font-family:\'Space Grotesk\',\'Segoe UI\',sans-serif;">
+      Zoom: mouse wheel &nbsp;|&nbsp; Pan: click + drag &nbsp;|&nbsp; Reset: button
+    </div>
+  </div>
+</div>';
+
+  echo "<script>\n";
+  echo "window.closePolarZoomModal = function() {\n";
+  echo "  var modal = document.getElementById('polarZoomModal');\n";
+  echo "  if (modal) modal.style.display = 'none';\n";
+  echo "  var tip = document.getElementById('polar-zoom-tooltip');\n";
+  echo "  if (tip) tip.style.opacity = 0;\n";
+  echo "};\n";
+  echo "\n";
+  echo "window.resetPolarZoom = function() {};\n";
+  echo "\n";
+  echo "window.openPolarZoomModal = function() {\n";
+  echo "  var info = window.__polarSingleExport;\n";
+  echo "  if (!info || !Array.isArray(info.merged) || !info.merged.length) return;\n";
+  echo "  var modal = document.getElementById('polarZoomModal');\n";
+  echo "  var container = document.getElementById('polarZoomChartContainer');\n";
+  echo "  if (!modal || !container) return;\n";
+  echo "  modal.style.display = 'flex';\n";
+  echo "  container.innerHTML = '';\n";
+  echo "\n";
+  echo "  modal.onclick = function(e) { if (e.target === modal) closePolarZoomModal(); };\n";
+  echo "\n";
+  echo "  var merged = info.merged;\n";
+  echo "  var dirVar = info.dirVar;\n";
+  echo "  var colorVar = info.colorVar;\n";
+  echo "  var payload = info.payload;\n";
+  echo "  var unitsMap = payload.units || {};\n";
+  echo "  var dirUnit = String(unitsMap[dirVar] || 'deg').split(' (')[0];\n";
+  echo "  var colorUnit = String(unitsMap[colorVar] || '').split(' (')[0];\n";
+  echo "  var formatHoverTime = d3.utcFormat('%Y-%m-%d %H:%M');\n";
+  echo "\n";
+  echo "  var width = container.clientWidth || 800;\n";
+  echo "  var height = container.clientHeight || 700;\n";
+  echo "  var margin = { top: 40, right: 110, bottom: 40, left: 40 };\n";
+  echo "  var cx = (width - margin.left - margin.right) / 2 + margin.left;\n";
+  echo "  var cy = (height - margin.top - margin.bottom) / 2 + margin.top + 20;\n";
+  echo "  var outerRadius = Math.min(width - margin.left - margin.right, height - margin.top - margin.bottom) / 2 - 10;\n";
+  echo "  var innerRadius = Math.max(24, outerRadius * 0.16);\n";
+  echo "\n";
+  echo "  var timeExtent = d3.extent(merged, function(d) { return d.time; });\n";
+  echo "  var colorExtent = d3.extent(merged, function(d) { return d.colorValue; });\n";
+  echo "  var r = d3.scaleTime().domain(timeExtent).range([innerRadius, outerRadius]);\n";
+  echo "  var colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(colorExtent);\n";
+  echo "\n";
+  echo "  var angleToXY = function(deg, radius) {\n";
+  echo "    var a = (deg / 180) * Math.PI - Math.PI / 2;\n";
+  echo "    return { x: Math.cos(a) * radius, y: Math.sin(a) * radius };\n";
+  echo "  };\n";
+  echo "\n";
+  echo "  var splitSegments = function(points) {\n";
+  echo "    var out = [], current = [];\n";
+  echo "    for (var i = 0; i < points.length; i++) {\n";
+  echo "      var p = points[i];\n";
+  echo "      if (current.length === 0) { current.push(p); continue; }\n";
+  echo "      var prev = current[current.length - 1];\n";
+  echo "      var dt = Math.abs(p.time - prev.time);\n";
+  echo "      var gapBreak = dt > (5 * 60 * 1000);\n";
+  echo "      var jumpBreak = Math.abs(p.dirUnwrappedSmoothed - prev.dirUnwrappedSmoothed) > 120;\n";
+  echo "      if (gapBreak || jumpBreak) { if (current.length > 1) out.push(current); current = [p]; }\n";
+  echo "      else { current.push(p); }\n";
+  echo "    }\n";
+  echo "    if (current.length > 1) out.push(current);\n";
+  echo "    return out;\n";
+  echo "  };\n";
+  echo "\n";
+  echo "  var svg = d3.select(container).append('svg').attr('width', width).attr('height', height);\n";
+  echo "\n";
+  echo "  var tooltip = (function() {\n";
+  echo "    var ex = d3.select('#polar-zoom-tooltip');\n";
+  echo "    if (!ex.empty()) return ex;\n";
+  echo "    return d3.select('body').append('div').attr('id','polar-zoom-tooltip')\n";
+  echo "      .style('position','absolute').style('background','rgba(22,32,45,0.92)')\n";
+  echo "      .style('border','1px solid rgba(255,255,255,0.2)').style('border-radius','8px')\n";
+  echo "      .style('padding','8px 10px').style('color','#f7f9fb').style('font-size','12px')\n";
+  echo "      .style('pointer-events','none').style('opacity',0).style('z-index',10001);\n";
+  echo "  })();\n";
+  echo "\n";
+  echo "  var g = svg.append('g').attr('transform','translate(' + cx + ',' + cy + ')');\n";
+  echo "\n";
+  echo "  var zb = d3.zoom().scaleExtent([0.5, 12])\n";
+  echo "    .on('start', function() { tooltip.style('opacity', 0); })\n";
+  echo "    .on('zoom', function(event) {\n";
+  echo "      g.attr('transform','translate(' + cx + ',' + cy + ') ' + event.transform);\n";
+  echo "    });\n";
+  echo "  svg.call(zb);\n";
+  echo "\n";
+  echo "  window.resetPolarZoom = function() {\n";
+  echo "    svg.transition().duration(500).call(zb.transform, d3.zoomIdentity);\n";
+  echo "  };\n";
+  echo "\n";
+  echo "  var timeTicks = r.ticks(4);\n";
+  echo "  g.selectAll('.pzmgc').data(timeTicks).enter().append('circle')\n";
+  echo "    .attr('r', function(d) { return r(d); })\n";
+  echo "    .attr('fill','none').attr('stroke','#b7c7d6').attr('stroke-dasharray','4 6');\n";
+  echo "\n";
+  echo "  var dirs = [0,90,180,270];\n";
+  echo "  var lbls = {0:'N',90:'E',180:'S',270:'W'};\n";
+  echo "  g.selectAll('.pzmal').data(dirs).enter().append('line')\n";
+  echo "    .attr('x1',0).attr('y1',0)\n";
+  echo "    .attr('x2', function(d) { return angleToXY(d, outerRadius).x; })\n";
+  echo "    .attr('y2', function(d) { return angleToXY(d, outerRadius).y; })\n";
+  echo "    .attr('stroke','#8fa5ba');\n";
+  echo "  g.selectAll('.pzmlbl').data(dirs).enter().append('text')\n";
+  echo "    .attr('x', function(d) { return angleToXY(d, outerRadius + 16).x; })\n";
+  echo "    .attr('y', function(d) { return angleToXY(d, outerRadius + 16).y; })\n";
+  echo "    .attr('text-anchor','middle').attr('dominant-baseline','middle')\n";
+  echo "    .style('font-size','12px').style('font-weight','bold')\n";
+  echo "    .text(function(d) { return lbls[d]; });\n";
+  echo "\n";
+  echo "  var segments = splitSegments(merged);\n";
+  echo "  segments.forEach(function(seg) {\n";
+  echo "    for (var i = 1; i < seg.length; i++) {\n";
+  echo "      var a = seg[i-1], b = seg[i];\n";
+  echo "      var pa = angleToXY(a.dir, r(a.time)), pb = angleToXY(b.dir, r(b.time));\n";
+  echo "      g.append('line').attr('x1',pa.x).attr('y1',pa.y).attr('x2',pb.x).attr('y2',pb.y)\n";
+  echo "        .attr('stroke', colorScale((a.colorValue + b.colorValue) / 2))\n";
+  echo "        .attr('stroke-width', 2.2).attr('stroke-linecap','round');\n";
+  echo "    }\n";
+  echo "  });\n";
+  echo "\n";
+  echo "  g.selectAll('.pzmhp').data(merged).enter().append('circle')\n";
+  echo "    .attr('class','pzmhp')\n";
+  echo "    .attr('cx', function(d) { return angleToXY(d.dir, r(d.time)).x; })\n";
+  echo "    .attr('cy', function(d) { return angleToXY(d.dir, r(d.time)).y; })\n";
+  echo "    .attr('r', 6).attr('fill','transparent').style('cursor','crosshair')\n";
+  echo "    .on('mousemove', function(event, d) {\n";
+  echo "      var dt = Number.isFinite(d.dir) ? d.dir.toFixed(2) : '';\n";
+  echo "      var ct = Number.isFinite(d.colorValue) ? d.colorValue.toFixed(2) : '';\n";
+  echo "      tooltip.style('opacity',1)\n";
+  echo "        .html('<div style=\"font-weight:700;margin-bottom:4px;color:#9fd2ff;\">' + formatHoverTime(d.time) + '</div>' +\n";
+  echo "              '<div>' + dirVar + ': ' + dt + (dirUnit ? ' ' + dirUnit : '') + '</div>' +\n";
+  echo "              '<div>' + colorVar + ': ' + ct + (colorUnit ? ' ' + colorUnit : '') + '</div>')\n";
+  echo "        .style('left',(event.pageX+12)+'px').style('top',(event.pageY-18)+'px');\n";
+  echo "    })\n";
+  echo "    .on('mouseleave', function() { tooltip.style('opacity',0); });\n";
+  echo "\n";
+  echo "  var drawEP = function(point, label, fill) {\n";
+  echo "    if (!point) return;\n";
+  echo "    var pos = angleToXY(point.dir, r(point.time));\n";
+  echo "    g.append('circle').attr('cx',pos.x).attr('cy',pos.y).attr('r',5.5)\n";
+  echo "      .attr('fill',fill).attr('stroke','#ffffff').attr('stroke-width',1.8);\n";
+  echo "    g.append('text').attr('x',pos.x+8).attr('y',pos.y-8)\n";
+  echo "      .style('font-size','11px').style('font-weight','700').style('fill','#2c3e50').text(label);\n";
+  echo "  };\n";
+  echo "  drawEP(merged[0], 'Start', '#1e88e5');\n";
+  echo "  drawEP(merged[merged.length-1], 'End', '#e53935');\n";
+  echo "\n";
+  echo "  var title = (payload.shipName || payload.ship || '') + ' | ' + payload.date + ' | ' + payload.hs + '-' + payload.he + ' UTC';\n";
+  echo "  svg.append('text').attr('x',width/2).attr('y',22).attr('text-anchor','middle')\n";
+  echo "    .style('font-size','14px').style('font-weight','bold')\n";
+  echo "    .text('Polar Plot: ' + dirVar + ' colored by ' + colorVar);\n";
+  echo "  svg.append('text').attr('x',width/2).attr('y',38).attr('text-anchor','middle')\n";
+  echo "    .style('font-size','11px').style('fill','#4b5d70').text(title);\n";
+  echo "\n";
+  echo "  var legendX = width - 70, legendY = 100, legendH = 250;\n";
+  echo "  var gid = 'polarZoomColorScale';\n";
+  echo "  var defs = svg.append('defs');\n";
+  echo "  var grad = defs.append('linearGradient').attr('id',gid)\n";
+  echo "    .attr('x1','0%').attr('y1','100%').attr('x2','0%').attr('y2','0%');\n";
+  echo "  for (var i = 0; i <= 10; i++) {\n";
+  echo "    var t = i / 10;\n";
+  echo "    grad.append('stop').attr('offset',(t*100)+'%').attr('stop-color',d3.interpolateTurbo(t));\n";
+  echo "  }\n";
+  echo "  svg.append('rect').attr('x',legendX).attr('y',legendY).attr('width',16).attr('height',legendH)\n";
+  echo "    .attr('fill','url(#'+gid+')').attr('stroke','#777');\n";
+  echo "  var ls = d3.scaleLinear().domain(colorExtent).range([legendY+legendH, legendY]);\n";
+  echo "  svg.append('g').attr('transform','translate('+(legendX+16)+',0)').call(d3.axisRight(ls).ticks(6));\n";
+  echo "  svg.append('text').attr('x',legendX-12).attr('y',legendY-12)\n";
+  echo "    .style('font-size','11px').style('font-weight','bold').text(colorVar);\n";
+  echo "};\n";
   echo "</script>\n";
 }
