@@ -98,6 +98,9 @@
 	v36 2025-07-10 Neeraj Jawahirani
 		- Chaning for DB_PROBABILITY_ALL to DB_PROBABILITY_NONE for testing purposes
 
+  v37 2026-03-18 Matthew Weiberg
+    - Removed the missing data flag 'w' since it is no longer used in the database and is not being used in any of the code.
+
 */
 require "include/debugging.php";
 

@@ -539,6 +539,4 @@ FORM;
     RenderPlotAll($varGroups, $allVars, $filterStart, $filterEnd);
     return;
   }
-
-  // Single plot mode would go here...
 }
