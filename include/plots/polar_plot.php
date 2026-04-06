@@ -98,7 +98,6 @@ function InsertPolarPlot()
         <select name="dir_var" style="width:220px;">
           $dirOptions
         </select>
-        <span style="color:#888; font-size:11px; margin-left:6px;">DIR, DIR1, DIR2, ...</span>
       </td>
     </tr>
     <tr>
@@ -107,7 +106,6 @@ function InsertPolarPlot()
         <select name="color_var" style="width:220px;">
           $colorOptions
         </select>
-        <span style="color:#888; font-size:11px; margin-left:6px;">PL_WSPD* plus P, T, RH, TS, SSPS, CNDC, PRECIP, RAD_SW, RAD_LW, RAD_PAR</span>
       </td>
     </tr>
     <tr>
