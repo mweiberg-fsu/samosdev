@@ -151,18 +151,31 @@ FORM;
       'he' => $he,
       'mode' => 12,
     ));
-    $urlMap[$var] = "$SERVER/charts/plot_chart.php?$baseParams";
+    $urlMap[$var] = array(
+      'data' => "$SERVER/charts/plot_chart.php?$baseParams",
+      'flags' => "$SERVER/charts/plot_series_flags.php?$baseParams"
+    );
   }
 
   $mh = curl_multi_init();
   $curlHandles = array();
-  foreach ($urlMap as $var => $url) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_multi_add_handle($mh, $ch);
-    $curlHandles[$var] = $ch;
+  foreach ($urlMap as $var => $urls) {
+    $chData = curl_init();
+    curl_setopt($chData, CURLOPT_URL, $urls['data']);
+    curl_setopt($chData, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($chData, CURLOPT_TIMEOUT, 30);
+    curl_multi_add_handle($mh, $chData);
+
+    $chFlags = curl_init();
+    curl_setopt($chFlags, CURLOPT_URL, $urls['flags']);
+    curl_setopt($chFlags, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($chFlags, CURLOPT_TIMEOUT, 30);
+    curl_multi_add_handle($mh, $chFlags);
+
+    $curlHandles[$var] = array(
+      'data' => $chData,
+      'flags' => $chFlags
+    );
   }
 
   $running = null;
@@ -172,26 +185,91 @@ FORM;
   } while ($running > 0);
 
   $rawResults = array();
-  foreach ($curlHandles as $var => $ch) {
-    $rawResults[$var] = curl_multi_getcontent($ch);
-    curl_multi_remove_handle($mh, $ch);
-    curl_close($ch);
+  foreach ($curlHandles as $var => $handles) {
+    $rawResults[$var] = array(
+      'data' => curl_multi_getcontent($handles['data']),
+      'flags' => curl_multi_getcontent($handles['flags'])
+    );
+    curl_multi_remove_handle($mh, $handles['data']);
+    curl_multi_remove_handle($mh, $handles['flags']);
+    curl_close($handles['data']);
+    curl_close($handles['flags']);
   }
   curl_multi_close($mh);
 
+  $zFlagsByVar = array();
+  foreach (array_keys($selectedMeta) as $var) {
+    $zFlagsByVar[$var] = ' ';
+
+    if ($order > 100) {
+      $zQuery = "SELECT mqcs.z
+                 FROM merged_qc_summary mqcs
+                 INNER JOIN known_variable kv ON mqcs.known_variable_id = kv.variable_id
+                 WHERE merged_file_history_id = $file_history_id
+                 AND kv.variable_name = '" . addslashes($var) . "'
+                 LIMIT 1";
+    } else {
+      $zQuery = "SELECT qcs.z
+                 FROM qc_summary qcs
+                 INNER JOIN known_variable kv ON qcs.known_variable_id = kv.variable_id
+                 WHERE daily_file_history_id = $file_history_id
+                 AND kv.variable_name = '" . addslashes($var) . "'
+                 LIMIT 1";
+    }
+
+    db_query($zQuery);
+    if ($zRow = db_get_row()) {
+      if ((string)$zRow->z === '1') {
+        $zFlagsByVar[$var] = 'Z';
+      }
+    }
+  }
+
   $plotData = array();
-  foreach ($rawResults as $var => $jsonText) {
-    $series = json_decode($jsonText, true);
+  foreach ($rawResults as $var => $result) {
+    $series = json_decode($result['data'], true);
+    $flagsRaw = json_decode($result['flags'], true);
     if (!is_array($series)) {
       $series = array();
     }
+    if (!is_array($flagsRaw)) {
+      $flagsRaw = array();
+    }
+
+    $flagsAreTimestampKeyed = false;
+    foreach ($flagsRaw as $flagKey => $unusedFlagValue) {
+      $flagKey = (string)$flagKey;
+      if (strpos($flagKey, '-') !== false || strpos($flagKey, ':') !== false || strpos($flagKey, ' ') !== false) {
+        $flagsAreTimestampKeyed = true;
+        break;
+      }
+    }
+    $flagByIndex = array_values($flagsRaw);
+    $flagIndex = 0;
 
     $points = array();
     foreach ($series as $ts => $value) {
+      if (isset($flagsRaw[$ts])) {
+        $flag = trim((string)$flagsRaw[$ts]);
+      } elseif (!$flagsAreTimestampKeyed && isset($flagByIndex[$flagIndex])) {
+        $flag = trim((string)$flagByIndex[$flagIndex]);
+      } else {
+        $flag = ' ';
+      }
+
+      if ($flag === '' || $flag === ' ') {
+        $flag = isset($zFlagsByVar[$var]) ? $zFlagsByVar[$var] : ' ';
+      }
+
       $points[] = array(
         'date' => $ts,
         'value' => $value,
+        'flag' => $flag,
       );
+
+      if (!$flagsAreTimestampKeyed) {
+        $flagIndex++;
+      }
     }
 
     usort($points, function($a, $b) {
@@ -341,6 +419,11 @@ FORM;
   echo "\n";
   echo "  const dirSeriesRaw = ((payload.plotData || {})[dirVar] || {}).points || [];\n";
   echo "  const colorSeriesRaw = ((payload.plotData || {})[colorVar] || {}).points || [];\n";
+  echo "  const flagColors = {\n";
+  echo "    B: '#00FFFF', D: '#0000FF', E: '#8A2BE2', F: '#00FF00',\n";
+  echo "    G: '#FF8C00', I: '#FFFF00', J: '#FF00FF', K: '#FF0000',\n";
+  echo "    L: '#40E0D0', M: '#006400', S: '#FF69B4'\n";
+  echo "  };\n";
   echo "\n";
   echo "  const normalizeValue = (v) => {\n";
   echo "    const n = v == null ? null : Number(v);\n";
@@ -351,24 +434,32 @@ FORM;
   echo "  const dirSeries = dirSeriesRaw.map(p => ({\n";
   echo "    date: p.date,\n";
   echo "    time: parseTime(p.date),\n";
-  echo "    value: normalizeValue(p.value)\n";
+  echo "    value: normalizeValue(p.value),\n";
+  echo "    flag: (p.flag || ' ').trim()\n";
   echo "  })).filter(p => p.time && p.value != null).sort((a, b) => a.time - b.time);\n";
   echo "\n";
   echo "  const colorMap = new Map();\n";
+  echo "  const colorFlagMap = new Map();\n";
   echo "  colorSeriesRaw.forEach(p => {\n";
   echo "    const cv = normalizeValue(p.value);\n";
-  echo "    if (cv != null) colorMap.set(p.date, cv);\n";
+  echo "    const cf = (p.flag || ' ').trim();\n";
+  echo "    if (cv != null) {\n";
+  echo "      colorMap.set(p.date, cv);\n";
+  echo "      colorFlagMap.set(p.date, cf);\n";
+  echo "    }\n";
   echo "  });\n";
   echo "\n";
   echo "  const mergedRaw = dirSeries.map(p => ({\n";
   echo "    date: p.date,\n";
   echo "    time: p.time,\n";
   echo "    dirRaw: ((p.value % 360) + 360) % 360,\n";
-  echo "    colorValue: colorMap.has(p.date) ? colorMap.get(p.date) : null\n";
+  echo "    colorValue: colorMap.has(p.date) ? colorMap.get(p.date) : null,\n";
+  echo "    dirFlag: p.flag || ' ',\n";
+  echo "    colorFlag: colorFlagMap.has(p.date) ? colorFlagMap.get(p.date) : ' '\n";
   echo "  })).filter(p => p.colorValue != null);\n";
   echo "\n";
   echo "  if (!mergedRaw.length) {\n";
-  echo "    container.innerHTML = '<div style=\"padding:20px; color:#b00020; text-align:center;\">No overlapping DIR and wind speed data found for the selected range.</div>';\n";
+  echo "    container.innerHTML = '<div style=\"padding:20px; color:#b00020; text-align:center;\">No overlapping direction and gradient-variable data found for the selected range.</div>';\n";
   echo "    return;\n";
   echo "  }\n";
   echo "\n";
@@ -528,6 +619,33 @@ FORM;
   echo "    }\n";
   echo "  });\n";
   echo "\n";
+  echo "  const flaggedPoints = merged.filter(d => {\n";
+  echo "    if (!Number.isFinite(d.dir) || !Number.isFinite(d.colorValue)) return false;\n";
+  echo "    const dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "    const colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "    return (dirFlag && dirFlag !== ' ' && dirFlag !== 'Z' && flagColors[dirFlag]) ||\n";
+  echo "           (colorFlag && colorFlag !== ' ' && colorFlag !== 'Z' && flagColors[colorFlag]);\n";
+  echo "  });\n";
+  echo "\n";
+  echo "  g.selectAll('.polar-flag-point')\n";
+  echo "    .data(flaggedPoints)\n";
+  echo "    .enter()\n";
+  echo "    .append('circle')\n";
+  echo "    .attr('class', 'polar-flag-point')\n";
+  echo "    .attr('cx', d => angleToXY(d.dir, r(d.time)).x)\n";
+  echo "    .attr('cy', d => angleToXY(d.dir, r(d.time)).y)\n";
+  echo "    .attr('r', 4)\n";
+  echo "    .attr('fill', d => {\n";
+  echo "      const dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "      const colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "      if (dirFlag && dirFlag !== ' ' && dirFlag !== 'Z' && flagColors[dirFlag]) return flagColors[dirFlag];\n";
+  echo "      if (colorFlag && colorFlag !== ' ' && colorFlag !== 'Z' && flagColors[colorFlag]) return flagColors[colorFlag];\n";
+  echo "      return '#444';\n";
+  echo "    })\n";
+  echo "    .attr('stroke', '#ffffff')\n";
+  echo "    .attr('stroke-width', 1.4)\n";
+  echo "    .style('opacity', 0.92);\n";
+  echo "\n";
   echo "  g.selectAll('.polar-hover-point')\n";
   echo "    .data(merged)\n";
   echo "    .enter()\n";
@@ -543,12 +661,18 @@ FORM;
   echo "      const colorText = Number.isFinite(d.colorValue) ? d.colorValue.toFixed(2) : '';\n";
   echo "      const dirLabel = dirUnit ? (dirText + ' ' + dirUnit) : dirText;\n";
   echo "      const colorLabel = colorUnit ? (colorText + ' ' + colorUnit) : colorText;\n";
+  echo "      const dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "      const colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "      const dirFlagText = (dirFlag && dirFlag !== ' ') ? dirFlag : '-';\n";
+  echo "      const colorFlagText = (colorFlag && colorFlag !== ' ') ? colorFlag : '-';\n";
   echo "\n";
   echo "      tooltip\n";
   echo "        .style('opacity', 1)\n";
   echo "        .html('<div style=\"font-weight:700; margin-bottom:4px; color:#9fd2ff;\">' + formatHoverTime(d.time) + '</div>' +\n";
   echo "              '<div>' + dirVar + ': ' + dirLabel + '</div>' +\n";
-  echo "              '<div>' + colorVar + ': ' + colorLabel + '</div>')\n";
+  echo "              '<div>' + colorVar + ': ' + colorLabel + '</div>' +\n";
+  echo "              '<div>' + dirVar + ' flag: ' + dirFlagText + '</div>' +\n";
+  echo "              '<div>' + colorVar + ' flag: ' + colorFlagText + '</div>')\n";
   echo "        .style('left', (event.pageX + 12) + 'px')\n";
   echo "        .style('top', (event.pageY - 18) + 'px');\n";
   echo "    })\n";
@@ -735,6 +859,11 @@ FORM;
   echo "  var dirUnit = String(unitsMap[dirVar] || 'deg').split(' (')[0];\n";
   echo "  var colorUnit = String(unitsMap[colorVar] || '').split(' (')[0];\n";
   echo "  var formatHoverTime = d3.utcFormat('%Y-%m-%d %H:%M');\n";
+  echo "  var flagColors = {\n";
+  echo "    B: '#00FFFF', D: '#0000FF', E: '#8A2BE2', F: '#00FF00',\n";
+  echo "    G: '#FF8C00', I: '#FFFF00', J: '#FF00FF', K: '#FF0000',\n";
+  echo "    L: '#40E0D0', M: '#006400', S: '#FF69B4'\n";
+  echo "  };\n";
   echo "\n";
   echo "  var width = container.clientWidth || 800;\n";
   echo "  var height = container.clientHeight || 700;\n";
@@ -825,6 +954,28 @@ FORM;
   echo "    }\n";
   echo "  });\n";
   echo "\n";
+  echo "  var flaggedPoints = merged.filter(function(d) {\n";
+  echo "    if (!Number.isFinite(d.dir) || !Number.isFinite(d.colorValue)) return false;\n";
+  echo "    var dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "    var colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "    return (dirFlag && dirFlag !== ' ' && dirFlag !== 'Z' && flagColors[dirFlag]) ||\n";
+  echo "           (colorFlag && colorFlag !== ' ' && colorFlag !== 'Z' && flagColors[colorFlag]);\n";
+  echo "  });\n";
+  echo "\n";
+  echo "  g.selectAll('.pzm-flag-point').data(flaggedPoints).enter().append('circle')\n";
+  echo "    .attr('class', 'pzm-flag-point')\n";
+  echo "    .attr('cx', function(d) { return angleToXY(d.dir, r(d.time)).x; })\n";
+  echo "    .attr('cy', function(d) { return angleToXY(d.dir, r(d.time)).y; })\n";
+  echo "    .attr('r', 4)\n";
+  echo "    .attr('fill', function(d) {\n";
+  echo "      var dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "      var colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "      if (dirFlag && dirFlag !== ' ' && dirFlag !== 'Z' && flagColors[dirFlag]) return flagColors[dirFlag];\n";
+  echo "      if (colorFlag && colorFlag !== ' ' && colorFlag !== 'Z' && flagColors[colorFlag]) return flagColors[colorFlag];\n";
+  echo "      return '#444';\n";
+  echo "    })\n";
+  echo "    .attr('stroke', '#ffffff').attr('stroke-width', 1.4).style('opacity', 0.92);\n";
+  echo "\n";
   echo "  g.selectAll('.pzmhp').data(merged).enter().append('circle')\n";
   echo "    .attr('class','pzmhp')\n";
   echo "    .attr('cx', function(d) { return angleToXY(d.dir, r(d.time)).x; })\n";
@@ -833,10 +984,16 @@ FORM;
   echo "    .on('mousemove', function(event, d) {\n";
   echo "      var dt = Number.isFinite(d.dir) ? d.dir.toFixed(2) : '';\n";
   echo "      var ct = Number.isFinite(d.colorValue) ? d.colorValue.toFixed(2) : '';\n";
+  echo "      var dirFlag = String(d.dirFlag || '').trim();\n";
+  echo "      var colorFlag = String(d.colorFlag || '').trim();\n";
+  echo "      var dirFlagText = (dirFlag && dirFlag !== ' ') ? dirFlag : '-';\n";
+  echo "      var colorFlagText = (colorFlag && colorFlag !== ' ') ? colorFlag : '-';\n";
   echo "      tooltip.style('opacity',1)\n";
   echo "        .html('<div style=\"font-weight:700;margin-bottom:4px;color:#9fd2ff;\">' + formatHoverTime(d.time) + '</div>' +\n";
   echo "              '<div>' + dirVar + ': ' + dt + (dirUnit ? ' ' + dirUnit : '') + '</div>' +\n";
-  echo "              '<div>' + colorVar + ': ' + ct + (colorUnit ? ' ' + colorUnit : '') + '</div>')\n";
+  echo "              '<div>' + colorVar + ': ' + ct + (colorUnit ? ' ' + colorUnit : '') + '</div>' +\n";
+  echo "              '<div>' + dirVar + ' flag: ' + dirFlagText + '</div>' +\n";
+  echo "              '<div>' + colorVar + ' flag: ' + colorFlagText + '</div>')\n";
   echo "        .style('left',(event.pageX+12)+'px').style('top',(event.pageY-18)+'px');\n";
   echo "    })\n";
   echo "    .on('mouseleave', function() { tooltip.style('opacity',0); });\n";
