@@ -39,30 +39,20 @@ function InsertPolarPlot()
 
   $dirVars = array();
   $colorVars = array();
-  $gradientVarLabels = array(
-    'P' => 'Pressure (P)',
-    'T' => 'Temperature (T)',
-    'RH' => 'Relative humidity (RH)',
-    'TS' => 'Sea surface temperatures (TS)',
-    'SSPS' => 'Salinity (SSPS)',
-    'CNDC' => 'Conductivity (CNDC)',
-    'PRECIP' => 'Precipitation (PRECIP)',
-    'RAD_SW' => 'Shortwave Radiation (RAD_SW)',
-    'RAD_LW' => 'Longwave Radiation (RAD_LW)',
-    'RAD_PAR' => 'PAR Radiation (RAD_PAR)'
-  );
 
   foreach ($allVars as $varName => $meta) {
-    if (preg_match('/^(DIR\d*|PL_WDIR\d*)$/i', $varName)) {
+    if (preg_match('/^(DIR\d*|PL_?WDIR\d*)$/i', $varName)) {
       $dirVars[] = $varName;
     }
-    if (preg_match('/^PL_WSPD\d*$/i', $varName) || isset($gradientVarLabels[$varName])) {
+    if (preg_match('/^(PL_?WSPD\d*|P\d*|T\d*|RH\d*|TS\d*|SSPS\d*|CNDC\d*|PRECIP\d*|RAD_SW\d*|RAD_LW\d*|RAD_PAR\d*)$/i', $varName)) {
       $colorVars[] = $varName;
     }
   }
 
-  sort($dirVars);
-  sort($colorVars);
+  natcasesort($dirVars);
+  natcasesort($colorVars);
+  $dirVars = array_values($dirVars);
+  $colorVars = array_values($colorVars);
 
   $selectedDirVar = isset($_REQUEST['dir_var']) ? $_REQUEST['dir_var'] : (isset($dirVars[0]) ? $dirVars[0] : '');
   $selectedColorVar = isset($_REQUEST['color_var']) ? $_REQUEST['color_var'] : (isset($colorVars[0]) ? $colorVars[0] : '');
@@ -76,8 +66,7 @@ function InsertPolarPlot()
   $colorOptions = '';
   foreach ($colorVars as $v) {
     $sel = ($v === $selectedColorVar) ? ' selected' : '';
-    $label = isset($gradientVarLabels[$v]) ? $gradientVarLabels[$v] : $v;
-    $colorOptions .= "<option value=\"$v\"$sel>$label</option>";
+    $colorOptions .= "<option value=\"$v\"$sel>$v</option>";
   }
 
   $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=12";
