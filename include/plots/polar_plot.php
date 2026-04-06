@@ -39,12 +39,24 @@ function InsertPolarPlot()
 
   $dirVars = array();
   $colorVars = array();
+  $gradientVarLabels = array(
+    'P' => 'Pressure (P)',
+    'T' => 'Temperature (T)',
+    'RH' => 'Relative humidity (RH)',
+    'TS' => 'Sea surface temperatures (TS)',
+    'SSPS' => 'Salinity (SSPS)',
+    'CNDC' => 'Conductivity (CNDC)',
+    'PRECIP' => 'Precipitation (PRECIP)',
+    'RAD_SW' => 'Shortwave Radiation (RAD_SW)',
+    'RAD_LW' => 'Longwave Radiation (RAD_LW)',
+    'RAD_PAR' => 'PAR Radiation (RAD_PAR)'
+  );
 
   foreach ($allVars as $varName => $meta) {
     if (preg_match('/^(DIR\d*|PL_WDIR\d*)$/i', $varName)) {
       $dirVars[] = $varName;
     }
-    if (preg_match('/^PL_WSPD\d*$/i', $varName)) {
+    if (preg_match('/^PL_WSPD\d*$/i', $varName) || isset($gradientVarLabels[$varName])) {
       $colorVars[] = $varName;
     }
   }
@@ -64,7 +76,8 @@ function InsertPolarPlot()
   $colorOptions = '';
   foreach ($colorVars as $v) {
     $sel = ($v === $selectedColorVar) ? ' selected' : '';
-    $colorOptions .= "<option value=\"$v\"$sel>$v</option>";
+    $label = isset($gradientVarLabels[$v]) ? $gradientVarLabels[$v] : $v;
+    $colorOptions .= "<option value=\"$v\"$sel>$label</option>";
   }
 
   $actionUrl = "index.php?ship=$ship&id=$ship_id&date=$date&order=$order&history_id=$file_history_id&mode=12";
@@ -94,7 +107,7 @@ function InsertPolarPlot()
         <select name="color_var" style="width:220px;">
           $colorOptions
         </select>
-        <span style="color:#888; font-size:11px; margin-left:6px;">PL_WSPD, PL_WSPD2, ...</span>
+        <span style="color:#888; font-size:11px; margin-left:6px;">PL_WSPD* plus P, T, RH, TS, SSPS, CNDC, PRECIP, RAD_SW, RAD_LW, RAD_PAR</span>
       </td>
     </tr>
     <tr>
@@ -120,7 +133,7 @@ FORM;
 
   if (empty($dirVars) || empty($colorVars)) {
     echo '<div style="width:790px; margin:20px auto; padding:16px; border:1px solid #ddd; background:#fafafa; color:#555;">';
-    echo 'Missing required variables for polar plotting. Need at least one DIR* variable and one PL_WSPD* variable.';
+    echo 'Missing required variables for polar plotting. Need at least one DIR* variable and one supported gradient variable.';
     echo '</div>';
     return;
   }
