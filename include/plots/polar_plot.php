@@ -336,15 +336,16 @@ FORM;
   echo "    const display = visible ? null : 'none';\n";
   echo "    d3.selectAll('#polarSingleChart .polar-flag-point').style('display', display);\n";
   echo "    d3.selectAll('#polarZoomChartContainer .pzm-flag-point').style('display', display);\n";
-  echo "    const toggleBtn = document.getElementById('polarFlagsToggleBtn');\n";
-  echo "    if (toggleBtn) toggleBtn.textContent = visible ? 'Hide Flags' : 'Show Flags';\n";
+  echo "    ['polarFlagsToggleBtn', 'polarZoomFlagsToggleBtn'].forEach((buttonId) => {\n";
+  echo "      const toggleBtn = document.getElementById(buttonId);\n";
+  echo "      if (toggleBtn) toggleBtn.textContent = visible ? 'Hide Flags' : 'Show Flags';\n";
+  echo "    });\n";
   echo "  };\n";
   echo "\n";
   echo "  window.togglePolarSingleFlags = function(buttonElement) {\n";
   echo "    const next = !(window.__polarSingleFlagsVisible !== false);\n";
   echo "    window.__polarSingleFlagsVisible = next;\n";
   echo "    applyPolarFlagsVisibility(next);\n";
-  echo "    if (buttonElement) buttonElement.textContent = next ? 'Hide Flags' : 'Show Flags';\n";
   echo "  };\n";
   echo "\n";
   echo "  window.__polarSingleExport = null;\n";
@@ -826,6 +827,7 @@ FORM;
         <span style="font-size:12px; opacity:0.8;">Polar Plot &mdash; mouse wheel to zoom, drag to pan</span>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;">
+        <button id="polarZoomFlagsToggleBtn" onclick="togglePolarSingleFlags(this)" style="height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#2ecc71; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Hide Flags</button>
         <button onclick="resetPolarZoom()" style="height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e67e22; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Reset</button>
         <button onclick="closePolarZoomModal()" style="height:34px; padding:0 12px; font-size:12px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:6px; font-weight:700; white-space:nowrap; flex-shrink:0;">Close</button>
       </div>
@@ -1017,9 +1019,12 @@ FORM;
   echo "\n";
   echo "  applyPolarFlagsVisibility(window.__polarSingleFlagsVisible !== false);\n";
   echo "\n";
-  echo "  g.append('circle')\n";
+  echo "  svg.append('rect')\n";
   echo "    .attr('class', 'pzm-hover-layer')\n";
-  echo "    .attr('r', outerRadius)\n";
+  echo "    .attr('x', 0)\n";
+  echo "    .attr('y', 0)\n";
+  echo "    .attr('width', width)\n";
+  echo "    .attr('height', height)\n";
   echo "    .attr('fill', 'transparent')\n";
   echo "    .style('pointer-events', 'all')\n";
   echo "    .style('cursor', 'crosshair')\n";
@@ -1033,10 +1038,23 @@ FORM;
   echo "      }\n";
   echo "      var timeValue = r.invert(radius);\n";
   echo "      var idx = timeBisect(merged, timeValue);\n";
-  echo "      var prev = merged[idx - 1];\n";
-  echo "      var next = merged[idx];\n";
-  echo "      var nearest = !prev ? next : !next ? prev : ((timeValue - prev.time) > (next.time - timeValue) ? next : prev);\n";
-  echo "      if (!nearest) {\n";
+  echo "      var candidateIndices = [idx - 2, idx - 1, idx, idx + 1, idx + 2];\n";
+  echo "      var nearest = null;\n";
+  echo "      var nearestDistance = Infinity;\n";
+  echo "      candidateIndices.forEach(function(candidateIdx) {\n";
+  echo "        if (candidateIdx < 0 || candidateIdx >= merged.length) return;\n";
+  echo "        var candidate = merged[candidateIdx];\n";
+  echo "        var candidateBase = angleToXY(candidate.dir, r(candidate.time));\n";
+  echo "        var candidateZoomed = currentTransform.apply([candidateBase.x, candidateBase.y]);\n";
+  echo "        var screenX = cx + candidateZoomed[0];\n";
+  echo "        var screenY = cy + candidateZoomed[1];\n";
+  echo "        var distance = Math.hypot(pointer[0] - screenX, pointer[1] - screenY);\n";
+  echo "        if (distance < nearestDistance) {\n";
+  echo "          nearest = candidate;\n";
+  echo "          nearestDistance = distance;\n";
+  echo "        }\n";
+  echo "      });\n";
+  echo "      if (!nearest || nearestDistance > 36) {\n";
   echo "        tooltip.style('opacity', 0);\n";
   echo "        return;\n";
   echo "      }\n";
