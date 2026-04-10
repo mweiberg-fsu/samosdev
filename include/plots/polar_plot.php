@@ -841,13 +841,14 @@ FORM;
           flex:1; width:100%; box-sizing:border-box; overflow:hidden;
           background:#ffffff; border-radius:12px; border:1px solid #d9e3ef;"></div>
     </div>
-    <div style="
+    <div title="Box zoom: hold Shift and drag with the left mouse button"
+         style="
         text-align:center; color:#5a6b7b; font-size:12px;
         padding:10px 15px; flex-shrink:0; background:#f4f7fb;
         border-top:1px solid #d9e3ef; box-sizing:border-box;
         white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
         font-family:\'Space Grotesk\',\'Segoe UI\',sans-serif;">
-      Zoom: mouse wheel &nbsp;|&nbsp; Pan: click + drag &nbsp;|&nbsp; Box zoom: shift + drag &nbsp;|&nbsp; Reset: button
+      Zoom: mouse wheel &nbsp;|&nbsp; Pan: click + drag &nbsp;|&nbsp; Box zoom: shift + left mouse click + drag &nbsp;|&nbsp; Reset: button
     </div>
   </div>
 </div>';
@@ -982,8 +983,9 @@ FORM;
   echo "  }\n";
   echo "\n";
   echo "  svg.on('mousedown.polarZoomBrush', function(event) {\n";
-  echo "    if (!event.shiftKey) return;\n";
+  echo "    if (!event.shiftKey || event.button !== 0) return;\n";
   echo "    event.preventDefault();\n";
+  echo "    event.stopPropagation();\n";
   echo "    tooltip.style('opacity', 0);\n";
   echo "    var pointer = d3.pointer(event, svg.node());\n";
   echo "    brushOrigin = [pointer[0], pointer[1]];\n";
@@ -1122,6 +1124,10 @@ FORM;
   echo "    .style('pointer-events', 'all')\n";
   echo "    .style('cursor', 'crosshair')\n";
   echo "    .on('mousemove', function(event) {\n";
+  echo "      if (brushOrigin || event.shiftKey) {\n";
+  echo "        tooltip.style('opacity', 0);\n";
+  echo "        return;\n";
+  echo "      }\n";
   echo "      var pointer = d3.pointer(event, svg.node());\n";
   echo "      var local = currentTransform.invert([pointer[0] - cx, pointer[1] - cy]);\n";
   echo "      var radius = Math.sqrt(local[0] * local[0] + local[1] * local[1]);\n";
