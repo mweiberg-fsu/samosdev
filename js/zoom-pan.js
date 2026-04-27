@@ -6,6 +6,7 @@
     const zoomSelectionState = global.__zoomSelectionState || (global.__zoomSelectionState = {});
     const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
     const zoomYLimitsState = global.__zoomYLimitsState || (global.__zoomYLimitsState = {});
+    const zoomAxisSwapState = global.__zoomAxisSwapState || (global.__zoomAxisSwapState = {});
 
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
@@ -100,6 +101,9 @@
         }
         if (!zoomYLimitsState[zoomStateKey]) {
             zoomYLimitsState[zoomStateKey] = { lower: '', upper: '' };
+        }
+        if (typeof zoomAxisSwapState[zoomStateKey] === 'undefined') {
+            zoomAxisSwapState[zoomStateKey] = false;
         }
 
         // Delay chart rendering to ensure layout is complete
@@ -518,17 +522,20 @@
         });
 
         // === DRAW MULTIPLE Y-AXES - evenly distributed left/right ===
+        const axisUnits = uniqueUnits.slice(0, numAxes);
+        let areAxesFlipped = zoomAxisSwapState[zoomStateKey] === true;
+        const isLeftForAxisIndex = (idx) => areAxesFlipped ? (idx % 2 !== 0) : (idx % 2 === 0);
+
         let leftAxisCount = 0;
         let rightAxisCount = 0;
-        
+
         const axisByUnit = {};
-        uniqueUnits.slice(0, numAxes).forEach((unit, idx) => {
+        axisUnits.forEach((unit, idx) => {
             const varsInGroup = unitGroups[unit];
             const scale = yScales[varsInGroup[0]];
             const isWindDir = varsInGroup.every(v => windDirectionVars.includes(v));
 
-            // Alternate: even indices go left, odd indices go right
-            const isLeft = (idx % 2 === 0);
+            const isLeft = isLeftForAxisIndex(idx);
             const positionInSide = isLeft ? leftAxisCount : rightAxisCount;
             
             if (isLeft) leftAxisCount++;
@@ -594,6 +601,34 @@
 
             axisByUnit[unit] = { axisGroup, axisLabel, vars: varsInGroup, isLeft, axisOffset };
         });
+
+        const getLeftAxisVars = () => {
+            const leftAxisVars = new Set();
+            axisUnits.forEach(unit => {
+                const axisInfo = axisByUnit[unit];
+                if (!axisInfo || !axisInfo.isLeft) return;
+                axisInfo.vars.forEach(v => leftAxisVars.add(v));
+            });
+            return leftAxisVars;
+        };
+
+        const applyAxisSideAssignments = () => {
+            let leftCount = 0;
+            let rightCount = 0;
+
+            axisUnits.forEach((unit, idx) => {
+                const axisInfo = axisByUnit[unit];
+                if (!axisInfo) return;
+
+                const isLeft = isLeftForAxisIndex(idx);
+                const positionInSide = isLeft ? leftCount++ : rightCount++;
+                const axisOffset = isLeft ? -positionInSide * axisSpacing : width + positionInSide * axisSpacing;
+
+                axisInfo.isLeft = isLeft;
+                axisInfo.axisOffset = axisOffset;
+                axisInfo.axisGroup.attr('transform', `translate(${axisOffset}, 0)`);
+            });
+        };
 
         // X Axis
         const xAxisGroup = g.append('g')
@@ -667,7 +702,9 @@
                     ? axisInfo.axisOffset - maxTickLabelWidth - tickPaddingFromAxis - axisLabelGap
                     : axisInfo.axisOffset + maxTickLabelWidth + tickPaddingFromAxis + axisLabelGap;
 
-                axisInfo.axisLabel.attr('y', labelOffset);
+                axisInfo.axisLabel
+                    .attr('y', labelOffset)
+                    .attr('dy', axisInfo.isLeft ? '1em' : '-0.3em');
             });
         };
 
@@ -723,7 +760,12 @@
                 return;
             }
 
-            vars.forEach(v => {
+            const leftAxisVars = getLeftAxisVars();
+            if (!leftAxisVars.size) {
+                return;
+            }
+
+            leftAxisVars.forEach(v => {
                 const scale = currentYScales[v];
                 const domain = scale.domain();
                 const nextLower = hasLower ? lowerVal : domain[0];
@@ -1000,6 +1042,12 @@
 
         const yUpperInput = document.getElementById('zoomYUpperInput');
         const yLowerInput = document.getElementById('zoomYLowerInput');
+        const flipAxesBtn = document.getElementById('zoomFlipAxesBtn');
+
+        const updateFlipAxesButtonText = () => {
+            if (!flipAxesBtn) return;
+            flipAxesBtn.textContent = areAxesFlipped ? 'Unflip Axes' : 'Flip Axes';
+        };
 
         const applyManualYInputsAndRefresh = () => {
             const lowerText = yLowerInput ? yLowerInput.value.trim() : '';
@@ -1036,6 +1084,17 @@
         if (yUpperInput) {
             yUpperInput.value = manualYUpper;
             yUpperInput.onchange = applyManualYInputsAndRefresh;
+        }
+
+        if (flipAxesBtn) {
+            updateFlipAxesButtonText();
+            flipAxesBtn.onclick = () => {
+                areAxesFlipped = !areAxesFlipped;
+                zoomAxisSwapState[zoomStateKey] = areAxesFlipped;
+                updateFlipAxesButtonText();
+                applyAxisSideAssignments();
+                applyZoomTransform(latestZoomTransform);
+            };
         }
 
         // Reset button
