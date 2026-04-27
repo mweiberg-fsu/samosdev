@@ -687,6 +687,17 @@
 
                 axisInfo.axisGroup.call(yAxis);
 
+                const tickLineX2 = axisInfo.isLeft ? -6 : 6;
+                const tickTextX = axisInfo.isLeft ? -9 : 9;
+                const tickTextAnchor = axisInfo.isLeft ? 'end' : 'start';
+
+                axisInfo.axisGroup.selectAll('.tick line')
+                    .attr('x2', tickLineX2);
+
+                axisInfo.axisGroup.selectAll('.tick text')
+                    .attr('x', tickTextX)
+                    .attr('text-anchor', tickTextAnchor);
+
                 const axisColor = color(varsInGroup[0]);
                 axisInfo.axisGroup.selectAll('path, line').style('stroke', axisColor);
                 axisInfo.axisGroup.selectAll('text')
