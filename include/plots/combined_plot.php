@@ -158,11 +158,25 @@ function InsertCombinedPlot()
 <script>
 // Form sync
 (function() {
+  const combinedVarsStorageKey = 'combinedPlotSelectedVars';
   const urlParams = new URLSearchParams(window.location.search);
   const shipIdParam = urlParams.get('id');
   const shipParam = urlParams.get('ship');
   const dateParam = urlParams.get('date');
   const varsParam = urlParams.getAll('vars[]');
+  let savedVars = [];
+
+  try {
+    const rawSavedVars = localStorage.getItem(combinedVarsStorageKey);
+    if (rawSavedVars) {
+      const parsed = JSON.parse(rawSavedVars);
+      if (Array.isArray(parsed)) {
+        savedVars = parsed;
+      }
+    }
+  } catch (e) {
+    savedVars = [];
+  }
   
   // Sync ship dropdown
   const shipSelect = document.getElementById('switchShipSelect');
@@ -207,66 +221,124 @@ function InsertCombinedPlot()
   
   // Sync variable selections
   const varsSelect = document.querySelector('select[name="vars[]"]');
-  if (varsSelect && varsParam.length > 0) {
+  const varsToApply = varsParam.length > 0 ? varsParam : savedVars;
+  if (varsSelect && varsToApply.length > 0) {
     for (let option of varsSelect.options) {
-      if (varsParam.includes(option.value)) {
+      if (varsToApply.includes(option.value)) {
         option.selected = true;
       }
     }
+
+    try {
+      const currentVars = Array.from(varsSelect.selectedOptions).map(opt => opt.value);
+      if (currentVars.length > 0) {
+        localStorage.setItem(combinedVarsStorageKey, JSON.stringify(currentVars));
+      }
+    } catch (e) {
+      // Ignore storage errors.
+    }
+  }
+
+  if (varsSelect) {
+    varsSelect.addEventListener('change', function() {
+      try {
+        const selectedVars = Array.from(varsSelect.selectedOptions).map(opt => opt.value);
+        if (selectedVars.length > 0) {
+          localStorage.setItem(combinedVarsStorageKey, JSON.stringify(selectedVars));
+        }
+      } catch (e) {
+        // Ignore storage errors.
+      }
+    });
   }
 })();
 </script>
 FORM;
 
-  echo "\n<script>\n";
-  
-  // Update Plot button handler
-  echo "document.getElementById('updatePlotBtn').addEventListener('click', function() {\n";
-  echo "    const shipSelect = document.getElementById('switchShipSelect');\n";
-  echo "    let shipId = '$ship_id';\n";
-  echo "    let callSign = '$ship';\n";
-  echo "    \n";
-  echo "    if (shipSelect && shipSelect.value) {\n";
-  echo "        const parts = shipSelect.value.split('|');\n";
-  echo "        shipId = parts[0];\n";
-  echo "        callSign = parts[1];\n";
-  echo "    }\n";
-  echo "    \n";
-  echo "    const datePicker = document.getElementById('datePicker');\n";
-  echo "    let dateVal = '$date';\n";
-  echo "    if (datePicker && datePicker.value) {\n";
-  echo "        dateVal = datePicker.value.replace(/-/g, '') + '000001';\n";
-  echo "    }\n";
-  echo "    \n";
-  echo "    const hsVal = document.getElementById('hs').value || '00:00';\n";
-  echo "    const heVal = document.getElementById('he').value || '23:59';\n";
-  echo "    \n";
-  echo "    let url = 'index.php?ship=' + encodeURIComponent(callSign) + \n";
-  echo "              '&id=' + shipId + \n";
-  echo "              '&date=' + dateVal +\n";
-  echo "              '&order=$order' +\n";
-  echo "              '&history_id=$file_history_id' +\n";
-  echo "              '&mode=7' +\n";
-  echo "              '&hs=' + encodeURIComponent(hsVal) +\n";
-  echo "              '&he=' + encodeURIComponent(heVal);\n";
-  echo "    \n";
-  echo "    const varsSelect = document.querySelector('select[name=\"vars[]\"]');\n";
-  echo "    if (varsSelect) {\n";
-  echo "        const selectedVars = Array.from(varsSelect.selectedOptions).map(opt => opt.value);\n";
-  echo "        selectedVars.forEach(v => {\n";
-  echo "            url += '&vars[]=' + encodeURIComponent(v);\n";
-  echo "        });\n";
-  echo "    }\n";
-  echo "    \n";
-  echo "    window.location.href = url;\n";
-  echo "});\n";
-  echo "const switchShipSelect = document.getElementById('switchShipSelect');\n";
-  echo "if (switchShipSelect) {\n";
-  echo "    switchShipSelect.addEventListener('change', function () {\n";
-  echo "        document.getElementById('updatePlotBtn').click();\n";
-  echo "    });\n";
-  echo "}\n";
-  echo "</script>\n";
+  echo <<<SCRIPT
+<script>
+const combinedVarsStorageKey = 'combinedPlotSelectedVars';
+
+document.getElementById('updatePlotBtn').addEventListener('click', function() {
+    const shipSelect = document.getElementById('switchShipSelect');
+    let shipId = '$ship_id';
+    let callSign = '$ship';
+
+    if (shipSelect && shipSelect.value) {
+        const parts = shipSelect.value.split('|');
+        shipId = parts[0];
+        callSign = parts[1];
+    }
+
+    const datePicker = document.getElementById('datePicker');
+    let dateVal = '$date';
+    if (datePicker && datePicker.value) {
+        dateVal = datePicker.value.replace(/-/g, '') + '000001';
+    }
+
+    const hsVal = document.getElementById('hs').value || '00:00';
+    const heVal = document.getElementById('he').value || '23:59';
+
+    let url = 'index.php?ship=' + encodeURIComponent(callSign) +
+              '&id=' + shipId +
+              '&date=' + dateVal +
+              '&order=$order' +
+              '&history_id=$file_history_id' +
+              '&mode=7' +
+              '&hs=' + encodeURIComponent(hsVal) +
+              '&he=' + encodeURIComponent(heVal);
+
+    const varsSelect = document.querySelector('select[name="vars[]"]');
+    let selectedVars = [];
+
+    if (varsSelect) {
+        selectedVars = Array.from(varsSelect.selectedOptions).map(opt => opt.value);
+    }
+
+    if (!selectedVars.length) {
+        try {
+            const rawSavedVars = localStorage.getItem(combinedVarsStorageKey);
+            if (rawSavedVars) {
+                const parsed = JSON.parse(rawSavedVars);
+                if (Array.isArray(parsed)) {
+                    selectedVars = parsed;
+                }
+            }
+        } catch (e) {
+            selectedVars = [];
+        }
+    }
+
+    if (selectedVars.length) {
+        try {
+            localStorage.setItem(combinedVarsStorageKey, JSON.stringify(selectedVars));
+        } catch (e) {
+            // Ignore storage errors.
+        }
+
+        selectedVars.forEach(v => {
+            url += '&vars[]=' + encodeURIComponent(v);
+        });
+    }
+
+    window.location.href = url;
+});
+
+const switchShipSelect = document.getElementById('switchShipSelect');
+if (switchShipSelect) {
+    switchShipSelect.addEventListener('change', function () {
+        document.getElementById('updatePlotBtn').click();
+    });
+}
+
+const combinedDatePicker = document.getElementById('datePicker');
+if (combinedDatePicker) {
+    combinedDatePicker.addEventListener('change', function () {
+        document.getElementById('updatePlotBtn').click();
+    });
+}
+</script>
+SCRIPT;
 
   // If no variables selected, wait for user action
   if (empty($selectedVars)) {
