@@ -253,9 +253,10 @@
         const numRightAxes = Math.floor(numAxes / 2);
         const axisSpacing = 72;
         const baseMargin = 55;
+        const rightAxisBuffer = 20;
         
         const dynamicLeftMargin = baseMargin + (numLeftAxes > 1 ? (numLeftAxes - 1) * axisSpacing + 70 : 0);
-        const dynamicRightMargin = baseMargin + (numRightAxes > 1 ? (numRightAxes - 1) * axisSpacing + 70 : 0);
+        const dynamicRightMargin = baseMargin + rightAxisBuffer + (numRightAxes > 1 ? (numRightAxes - 1) * axisSpacing + 70 : 0);
         
         const margin = { 
             top: Math.max(90, dynamicTopMargin), 
