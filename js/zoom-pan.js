@@ -832,6 +832,31 @@
 
         svg.call(zoom);
 
+        const boxZoomHistory = [];
+
+        const isSameTransformState = (a, b) => {
+            if (!a || !b) return false;
+            return Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6 && Math.abs(a.k - b.k) < 1e-6;
+        };
+
+        const toTransformState = (transform) => ({ x: transform.x, y: transform.y, k: transform.k });
+
+        const fromTransformState = (state) => d3.zoomIdentity.translate(state.x, state.y).scale(state.k);
+
+        const pushCurrentTransformToHistory = () => {
+            const currentState = toTransformState(latestZoomTransform);
+            const lastState = boxZoomHistory[boxZoomHistory.length - 1];
+            if (!lastState || !isSameTransformState(lastState, currentState)) {
+                boxZoomHistory.push(currentState);
+            }
+        };
+
+        const undoBoxZoomStep = () => {
+            if (!boxZoomHistory.length) return;
+            const prevState = boxZoomHistory.pop();
+            svg.transition().duration(220).call(zoom.transform, fromTransformState(prevState));
+        };
+
         // === SHIFT+DRAG BOUNDING BOX ZOOM ===
         // Append brush rect on top of everything in SVG space
         const brushRect = svg.append('rect')
@@ -897,7 +922,10 @@
 
             brushOrigin = null;
 
-            if ((x1_plot - x0_plot) < 5 || (y1_plot - y0_plot) < 5) return;
+            if ((x1_plot - x0_plot) < 5 || (y1_plot - y0_plot) < 5) {
+                undoBoxZoomStep();
+                return;
+            }
 
             // Compute new zoom k from the X selection extent
             const x0Date = currentX.invert(x0_plot);
@@ -913,6 +941,8 @@
             const primaryBase = yScales[primaryVar];
             const yMidVal = currentYScales[primaryVar].invert((y0_plot + y1_plot) / 2);
             const newTy = height / 2 - newK * primaryBase(yMidVal);
+
+            pushCurrentTransformToHistory();
 
             const newTransform = d3.zoomIdentity.translate(newTx, newTy).scale(newK);
             svg.transition().duration(250).call(zoom.transform, newTransform);
@@ -1118,6 +1148,7 @@
             resetBtn.onclick = () => {
                 manualYLower = '';
                 manualYUpper = '';
+                boxZoomHistory.length = 0;
                 zoomYLimitsState[zoomStateKey] = { lower: '', upper: '' };
                 if (yLowerInput) {
                     yLowerInput.value = '';

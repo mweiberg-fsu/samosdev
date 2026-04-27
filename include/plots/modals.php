@@ -130,7 +130,7 @@ function RenderZoomModal()
             text-overflow:ellipsis;
       font-family:'Space Grotesk', 'Segoe UI', sans-serif;
         \">
-            Zoom: mouse wheel &nbsp;|&nbsp; Pan: click+drag &nbsp;|&nbsp; Box zoom: shift+drag &nbsp;|&nbsp; Y min/Y max: left Y-axis only &nbsp;|&nbsp; Flip Axes: swap left/right &nbsp;|&nbsp; Reset: button
+            Zoom: mouse wheel &nbsp;|&nbsp; Pan: click+drag &nbsp;|&nbsp; Box zoom: shift+drag &nbsp;|&nbsp; Box zoom undo: shift+click &nbsp;|&nbsp; Y min/Y max: left Y-axis only &nbsp;|&nbsp; Flip Axes: swap left/right &nbsp;|&nbsp; Reset: button
         </div>
     </div>
 </div>";
