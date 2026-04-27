@@ -525,6 +525,7 @@
         const axisUnits = uniqueUnits.slice(0, numAxes);
         let areAxesFlipped = zoomAxisSwapState[zoomStateKey] === true;
         const isLeftForAxisIndex = (idx) => areAxesFlipped ? (idx % 2 !== 0) : (idx % 2 === 0);
+        const axisInnerGap = 10;
 
         let leftAxisCount = 0;
         let rightAxisCount = 0;
@@ -545,10 +546,10 @@
             
             if (isLeft) {
                 yAxis = d3.axisLeft(scale).ticks(8);
-                axisOffset = -positionInSide * axisSpacing;
+                axisOffset = -axisInnerGap - positionInSide * axisSpacing;
             } else {
                 yAxis = d3.axisRight(scale).ticks(8);
-                axisOffset = width + positionInSide * axisSpacing;
+                axisOffset = width + axisInnerGap + positionInSide * axisSpacing;
             }
             
             if (isWindDir) {
@@ -622,7 +623,9 @@
 
                 const isLeft = isLeftForAxisIndex(idx);
                 const positionInSide = isLeft ? leftCount++ : rightCount++;
-                const axisOffset = isLeft ? -positionInSide * axisSpacing : width + positionInSide * axisSpacing;
+                const axisOffset = isLeft
+                    ? -axisInnerGap - positionInSide * axisSpacing
+                    : width + axisInnerGap + positionInSide * axisSpacing;
 
                 axisInfo.isLeft = isLeft;
                 axisInfo.axisOffset = axisOffset;
