@@ -927,20 +927,34 @@
                 return;
             }
 
-            // Compute new zoom k from the X selection extent
+            // Compute base-space bounds for the selected rectangle using the primary Y scale.
+            // d3.zoom uses a uniform scale, so we fit the selected box while preserving aspect ratio.
             const x0Date = currentX.invert(x0_plot);
             const x1Date = currentX.invert(x1_plot);
             const baseX0 = baseX(x0Date);
             const baseX1 = baseX(x1Date);
-            if (baseX1 === baseX0) return;
-            const newK  = width / (baseX1 - baseX0);
-            const newTx = -newK * baseX0;
-
-            // Compute ty to center the Y selection using the primary Y scale
             const primaryVar = vars.find(v => selectedVars.has(v)) || vars[0];
             const primaryBase = yScales[primaryVar];
-            const yMidVal = currentYScales[primaryVar].invert((y0_plot + y1_plot) / 2);
-            const newTy = height / 2 - newK * primaryBase(yMidVal);
+            const y0Val = currentYScales[primaryVar].invert(y0_plot);
+            const y1Val = currentYScales[primaryVar].invert(y1_plot);
+            const baseY0 = primaryBase(y0Val);
+            const baseY1 = primaryBase(y1Val);
+
+            const baseXMin = Math.min(baseX0, baseX1);
+            const baseXMax = Math.max(baseX0, baseX1);
+            const baseYMin = Math.min(baseY0, baseY1);
+            const baseYMax = Math.max(baseY0, baseY1);
+            const baseDx = baseXMax - baseXMin;
+            const baseDy = baseYMax - baseYMin;
+
+            if (baseDx <= 0 || baseDy <= 0) return;
+
+            const fitKX = width / baseDx;
+            const fitKY = height / baseDy;
+            const newK = Math.min(fitKX, fitKY);
+
+            const newTx = -newK * baseXMin + (width - newK * baseDx) / 2;
+            const newTy = -newK * baseYMin + (height - newK * baseDy) / 2;
 
             pushCurrentTransformToHistory();
 
