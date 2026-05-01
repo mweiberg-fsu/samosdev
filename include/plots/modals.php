@@ -219,14 +219,16 @@ function RenderShipTrackModal()
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <label for="shipTrackBasemapSelect" style="font-size:12px; font-weight:600; opacity:0.92;">Basemap</label>
         <select id="shipTrackBasemapSelect" style="
-            background:#ffffff;
-            color:#17324a;
-            border:1px solid #c8d7e6;
-            padding:7px 8px;
+          background:linear-gradient(135deg, #27ae60, #1f9d55);
+          color:#ffffff;
+          border:1px solid #188a48;
+          padding:8px 12px;
             border-radius:6px;
             font-size:12px;
-            font-weight:600;
-            min-width:160px;
+          font-weight:700;
+          min-width:170px;
+          cursor:pointer;
+          box-shadow:0 2px 6px rgba(0,0,0,0.2);
         ">
           <option value="esri-imagery" selected>Esri Imagery</option>
           <option value="osm-standard">OpenStreetMap</option>
