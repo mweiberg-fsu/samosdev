@@ -230,6 +230,12 @@ function renderShipTrack(payload) {
 
         const trackLayer = L.layerGroup().addTo(map);
         const pointInteractionLayer = L.layerGroup().addTo(map);
+        let activePopupMarker = null;
+        const hoverTooltip = L.tooltip({
+            sticky: true,
+            direction: 'top',
+            opacity: 0.95
+        });
 
         L.circleMarker([points[0].lat, points[0].lon], {
             radius: 7,
@@ -283,11 +289,11 @@ function renderShipTrack(payload) {
                 : '<div style="margin-top:6px; color:#55697c;">No selected data variables</div>';
 
             return `
-                <div style="min-width:220px; max-width:300px; font-size:12px; line-height:1.35;">
+                <div style="min-width:320px; max-width:420px; font-size:12px; line-height:1.35;">
                     <div style="font-weight:700; color:#1f3f5b; margin-bottom:4px;">Track Point</div>
                     <div><strong>Date:</strong> ${escapeHtml(displayDate)}</div>
                     <div><strong>Time (UTC):</strong> ${escapeHtml(point.time)}</div>
-                    <div><strong>Lat/Lon:</strong> ${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°</div>
+                    <div><strong>Lat/Lon:</strong> ${point.lat.toFixed(2)}&deg;, ${point.lon.toFixed(2)}&deg;</div>
                     ${valuesBlock}
                 </div>`;
         };
@@ -361,7 +367,7 @@ function renderShipTrack(payload) {
 
             points.forEach(point => {
                 const tooltipHtml = buildPointDetailsHtml(point);
-                L.circleMarker([point.lat, point.lon], {
+                const marker = L.circleMarker([point.lat, point.lon], {
                     radius: 8,
                     color: '#ffffff',
                     weight: 0,
@@ -370,15 +376,38 @@ function renderShipTrack(payload) {
                     interactive: true
                 })
                     .addTo(pointInteractionLayer)
-                    .bindTooltip(tooltipHtml, {
-                        sticky: true,
-                        direction: 'top',
-                        opacity: 0.95
-                    })
                     .bindPopup(tooltipHtml, {
-                        maxWidth: 320,
+                        maxWidth: 460,
                         autoPan: true
                     });
+
+                marker.on('mouseover', () => {
+                    if (activePopupMarker) {
+                        return;
+                    }
+                    hoverTooltip
+                        .setLatLng([point.lat, point.lon])
+                        .setContent(tooltipHtml);
+                    map.openTooltip(hoverTooltip);
+                });
+
+                marker.on('mouseout', () => {
+                    if (activePopupMarker) {
+                        return;
+                    }
+                    map.closeTooltip(hoverTooltip);
+                });
+
+                marker.on('popupopen', () => {
+                    activePopupMarker = marker;
+                    map.closeTooltip(hoverTooltip);
+                });
+
+                marker.on('popupclose', () => {
+                    if (activePopupMarker === marker) {
+                        activePopupMarker = null;
+                    }
+                });
             });
 
             if (legendVar) {
