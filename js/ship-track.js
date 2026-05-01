@@ -236,10 +236,10 @@ function renderShipTrack(payload) {
                     </div>
                     ${toggleHtml}
                 </div>
-                <div id="shipTrackMapPanel" style="flex:1 1 auto; min-height:320px; border:2px solid #2f7db5; border-radius:10px; display:flex; overflow:hidden;">
+                <div id="shipTrackMapPanel" style="flex:1 1 auto; min-height:320px; border:2px solid #2f7db5; border-radius:10px; display:flex; overflow:hidden; transition:flex-basis 280ms ease, min-height 280ms ease;">
                     <div id="shipTrackMap" style="flex:1; min-height:320px;"></div>
                 </div>
-                <div id="shipTrackTablePanel" style="flex:0 0 44px; min-height:44px; max-height:44px; overflow:hidden; border:1px solid #d3dde8; border-radius:8px; background:#fff;">
+                <div id="shipTrackTablePanel" style="flex:0 0 44px; min-height:44px; max-height:44px; overflow:hidden; border:1px solid #d3dde8; border-radius:8px; background:#fff; transition:flex-basis 280ms ease, min-height 280ms ease, max-height 280ms ease;">
                     <button id="shipTrackTableToggle" type="button" style="
                         width:100%;
                         border:none;
@@ -251,7 +251,7 @@ function renderShipTrack(payload) {
                         font-weight:700;
                         cursor:pointer;
                     ">Data Points (click to expand)</button>
-                    <div id="shipTrackTableWrap" style="display:none; max-height:100%; overflow:auto;">
+                    <div id="shipTrackTableWrap" style="max-height:0; opacity:0; overflow:auto; pointer-events:none; transition:max-height 280ms ease, opacity 220ms ease;">
                         <table style="width:100%; border-collapse:collapse; font-size:12px;">
                             <thead style="background:#214764; color:#fff; position:sticky; top:0; z-index:2;">
                                 <tr>
@@ -397,14 +397,18 @@ function renderShipTrack(payload) {
                 tablePanel.style.flex = '1 1 38%';
                 tablePanel.style.minHeight = '180px';
                 tablePanel.style.maxHeight = 'none';
-                tableWrap.style.display = 'block';
+                tableWrap.style.maxHeight = '100%';
+                tableWrap.style.opacity = '1';
+                tableWrap.style.pointerEvents = 'auto';
                 tableToggle.textContent = 'Data Points (click to collapse)';
             } else {
                 mapPanel.style.flex = '1 1 auto';
                 tablePanel.style.flex = '0 0 44px';
                 tablePanel.style.minHeight = '44px';
                 tablePanel.style.maxHeight = '44px';
-                tableWrap.style.display = 'none';
+                tableWrap.style.maxHeight = '0';
+                tableWrap.style.opacity = '0';
+                tableWrap.style.pointerEvents = 'none';
                 tableToggle.textContent = 'Data Points (click to expand)';
             }
 
