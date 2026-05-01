@@ -373,11 +373,12 @@ function renderShipTrack(payload) {
             points.forEach(point => {
                 const tooltipHtml = buildPointDetailsHtml(point);
                 const marker = L.circleMarker([point.lat, point.lon], {
-                    radius: 8,
-                    color: '#ffffff',
-                    weight: 0,
-                    opacity: 0,
-                    fillOpacity: 0,
+                    radius: 3,
+                    color: '#163a59',
+                    weight: 1,
+                    opacity: 0.95,
+                    fillColor: '#ffffff',
+                    fillOpacity: 0.95,
                     interactive: true
                 })
                     .addTo(pointInteractionLayer)
