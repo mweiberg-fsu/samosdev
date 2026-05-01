@@ -427,11 +427,11 @@ function renderShipTrack(payload) {
                 const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
                 const value = point.vars[v];
                 const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
-                return `<tr><td style="padding:2px 10px 2px 0; color:#415a72;">${escapeHtml(label)}</td><td style="padding:2px 0; text-align:right; font-weight:600;">${escapeHtml(formatted)}</td></tr>`;
+                return `<div style="display:flex; justify-content:space-between; gap:12px; margin-top:2px;"><span style="color:#415a72;">${escapeHtml(label)}</span><span style="font-weight:600; text-align:right;">${escapeHtml(formatted)}</span></div>`;
             }).join('');
 
             const valuesBlock = valueRows
-                ? `<table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:12px;">${valueRows}</table>`
+                ? `<div style="margin-top:6px; font-size:12px;">${valueRows}</div>`
                 : '<div style="margin-top:6px; color:#55697c;">No selected data variables</div>';
 
             return `
