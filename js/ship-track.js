@@ -37,6 +37,24 @@ function renderShipTrack(payload) {
         return String(rawDate || '');
     };
 
+    const formatTimeDisplay = (rawTime) => {
+        const value = String(rawTime || '').trim();
+        if (!value) {
+            return '';
+        }
+
+        if (value.includes('T')) {
+            return value.split('T').pop().replace(/Z$/, '').split('.')[0];
+        }
+
+        const parts = value.split(/\s+/);
+        if (parts.length > 1) {
+            return parts[parts.length - 1];
+        }
+
+        return value;
+    };
+
     const hsInput = document.querySelector('input[name="hs"]');
     const heInput = document.querySelector('input[name="he"]');
     const hs = normalizeHour(hsInput ? hsInput.value : null, '00');
@@ -436,7 +454,7 @@ function renderShipTrack(payload) {
                 const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
                 const value = point.vars[v];
                 const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
-                return `<div style="margin-top:2px; color:#000;"><strong>${escapeHtml(label)}</strong>: ${escapeHtml(formatted)}</div>`;
+                return `<div style="margin-top:2px;"><strong>${escapeHtml(label)}</strong>: ${escapeHtml(formatted)}</div>`;
             }).join('');
 
             const valuesBlock = valueRows
@@ -447,7 +465,7 @@ function renderShipTrack(payload) {
                 <div style="min-width:320px; max-width:420px; font-size:12px; line-height:1.35;">
                     <div style="font-weight:700; color:#1f3f5b; margin-bottom:4px;">Track Point</div>
                     <div><strong>Date:</strong> ${escapeHtml(displayDate)}</div>
-                    <div><strong>Time (UTC):</strong> ${escapeHtml(point.time)}</div>
+                    <div><strong>Time (UTC):</strong> ${escapeHtml(formatTimeDisplay(point.time))}</div>
                     <div><strong>Lat/Lon:</strong> ${point.lat.toFixed(2)}&deg;, ${point.lon.toFixed(2)}&deg;</div>
                     ${valuesBlock}
                 </div>`;
