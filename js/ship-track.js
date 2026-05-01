@@ -223,15 +223,67 @@ function renderShipTrack(payload) {
         const map = L.map('shipTrackMap', { preferCanvas: true }).fitBounds(points.map(p => [p.lat, p.lon]));
         setTimeout(() => map.invalidateSize(), 0);
 
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19,
-            attribution: '© Esri'
-        }).addTo(map);
+        const basemapSelect = document.getElementById('shipTrackBasemapSelect');
+        let activeBaseLayer = null;
 
-        L.tileLayer('https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Labels/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19,
-            attribution: '© Esri Labels'
-        }).addTo(map);
+        const createBaseLayer = (key) => {
+            switch (key) {
+                case 'osm-standard':
+                    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap contributors'
+                    });
+                case 'carto-voyager':
+                    return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 20,
+                        subdomains: 'abcd',
+                        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+                    });
+                case 'opentopo':
+                    return L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 17,
+                        attribution: '&copy; OpenStreetMap contributors, SRTM | &copy; OpenTopoMap'
+                    });
+                case 'carto-dark':
+                    return L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 20,
+                        subdomains: 'abcd',
+                        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+                    });
+                case 'esri-imagery':
+                default:
+                    return L.layerGroup([
+                        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            maxZoom: 19,
+                            attribution: '&copy; Esri'
+                        }),
+                        L.tileLayer('https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Labels/MapServer/tile/{z}/{y}/{x}', {
+                            maxZoom: 19,
+                            attribution: '&copy; Esri Labels'
+                        })
+                    ]);
+            }
+        };
+
+        const applyBasemap = (key) => {
+            if (activeBaseLayer) {
+                map.removeLayer(activeBaseLayer);
+            }
+            activeBaseLayer = createBaseLayer(key);
+            activeBaseLayer.addTo(map);
+        };
+
+        if (basemapSelect) {
+            if (!basemapSelect.value) {
+                basemapSelect.value = 'esri-imagery';
+            }
+            applyBasemap(basemapSelect.value);
+            basemapSelect.onchange = () => {
+                applyBasemap(basemapSelect.value || 'esri-imagery');
+            };
+        } else {
+            applyBasemap('esri-imagery');
+        }
 
         const trackLayer = L.layerGroup().addTo(map);
         const pointInteractionLayer = L.layerGroup().addTo(map);

@@ -216,7 +216,25 @@ function RenderShipTrackModal()
         <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px;">Ship Track</h2>
         <span style="font-size:12px; opacity:0.8;">Satellite view of the selected range</span>
       </div>
-            <button onclick="closeShipTrackModal()" style="
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <label for="shipTrackBasemapSelect" style="font-size:12px; font-weight:600; opacity:0.92;">Basemap</label>
+        <select id="shipTrackBasemapSelect" style="
+            background:#ffffff;
+            color:#17324a;
+            border:1px solid #c8d7e6;
+            padding:7px 8px;
+            border-radius:6px;
+            font-size:12px;
+            font-weight:600;
+            min-width:160px;
+        ">
+          <option value="esri-imagery" selected>Esri Imagery</option>
+          <option value="osm-standard">OpenStreetMap</option>
+          <option value="carto-voyager">Carto Voyager</option>
+          <option value="opentopo">OpenTopoMap</option>
+          <option value="carto-dark">Carto Dark Matter</option>
+        </select>
+        <button onclick="closeShipTrackModal()" style="
                 background:#e74c3c;
                 color:white;
                 border:none;
@@ -227,7 +245,8 @@ function RenderShipTrackModal()
         font-weight:700;
                 flex-shrink:0;
                 white-space:nowrap;
-            ">Close</button>
+              ">Close</button>
+            </div>
         </div>
         
         <div id="shipTrackContainer" style="
