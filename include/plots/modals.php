@@ -217,7 +217,6 @@ function RenderShipTrackModal()
         <span style="font-size:12px; opacity:0.8;">Satellite view of the selected range</span>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <label for="shipTrackBasemapSelect" style="font-size:12px; font-weight:600; opacity:0.92;">Basemap</label>
         <select id="shipTrackBasemapSelect" style="
           background:linear-gradient(135deg, #27ae60, #1f9d55);
           color:#ffffff;
@@ -231,12 +230,11 @@ function RenderShipTrackModal()
           box-shadow:0 2px 6px rgba(0,0,0,0.2);
         ">
           <option value="esri-imagery">Esri Imagery</option>
-          <option value="osm-standard" selected>OpenStreetMap</option>
+          <option value="osm-standard" selected>Basemap: OpenStreetMap</option>
           <option value="carto-voyager">Carto Voyager</option>
           <option value="opentopo">OpenTopoMap</option>
           <option value="carto-dark">Carto Dark Matter</option>
         </select>
-        <label for="shipTrackGradientSelect" style="font-size:12px; font-weight:600; opacity:0.92;">Gradient</label>
         <select id="shipTrackGradientSelect" style="
             background:linear-gradient(135deg, #27ae60, #1f9d55);
             color:#ffffff;
@@ -250,7 +248,7 @@ function RenderShipTrackModal()
             box-shadow:0 2px 6px rgba(0,0,0,0.2);
         ">
           <option value="viridis">Viridis</option>
-          <option value="plasma" selected>Plasma</option>
+          <option value="plasma" selected>Gradient: Plasma</option>
           <option value="inferno">Inferno</option>
           <option value="cividis">Cividis</option>
           <option value="turbo">Turbo</option>
