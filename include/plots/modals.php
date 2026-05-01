@@ -249,8 +249,8 @@ function RenderShipTrackModal()
             cursor:pointer;
             box-shadow:0 2px 6px rgba(0,0,0,0.2);
         ">
-          <option value="viridis" selected>Viridis</option>
-          <option value="plasma">Plasma</option>
+          <option value="viridis">Viridis</option>
+          <option value="plasma" selected>Plasma</option>
           <option value="inferno">Inferno</option>
           <option value="cividis">Cividis</option>
           <option value="turbo">Turbo</option>

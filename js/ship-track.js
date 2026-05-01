@@ -236,19 +236,34 @@ function renderShipTrack(payload) {
                     </div>
                     ${toggleHtml}
                 </div>
-                <div id="shipTrackMap" style="flex:1 1 62%; min-height:320px; border:2px solid #2f7db5; border-radius:10px;"></div>
-                <div style="flex:1 1 38%; min-height:180px; overflow:auto; border:1px solid #d3dde8; border-radius:8px; background:#fff;">
-                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                        <thead style="background:#214764; color:#fff; position:sticky; top:0; z-index:2;">
-                            <tr>
-                                <th style="padding:7px 8px; text-align:left;">Time (UTC)</th>
-                                <th style="padding:7px 8px; text-align:right;">Lat</th>
-                                <th style="padding:7px 8px; text-align:right;">Lon</th>
-                                ${valueHeaderHtml}
-                            </tr>
-                        </thead>
-                        <tbody id="shipTrackTableBody"></tbody>
-                    </table>
+                <div id="shipTrackMapPanel" style="flex:1 1 auto; min-height:320px; border:2px solid #2f7db5; border-radius:10px; display:flex; overflow:hidden;">
+                    <div id="shipTrackMap" style="flex:1; min-height:320px;"></div>
+                </div>
+                <div id="shipTrackTablePanel" style="flex:0 0 44px; min-height:44px; max-height:44px; overflow:hidden; border:1px solid #d3dde8; border-radius:8px; background:#fff;">
+                    <button id="shipTrackTableToggle" type="button" style="
+                        width:100%;
+                        border:none;
+                        background:#214764;
+                        color:#fff;
+                        padding:10px 12px;
+                        text-align:left;
+                        font-size:12px;
+                        font-weight:700;
+                        cursor:pointer;
+                    ">Data Points (click to expand)</button>
+                    <div id="shipTrackTableWrap" style="display:none; max-height:100%; overflow:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                            <thead style="background:#214764; color:#fff; position:sticky; top:0; z-index:2;">
+                                <tr>
+                                    <th style="padding:7px 8px; text-align:left;">Time (UTC)</th>
+                                    <th style="padding:7px 8px; text-align:right;">Lat</th>
+                                    <th style="padding:7px 8px; text-align:right;">Lon</th>
+                                    ${valueHeaderHtml}
+                                </tr>
+                            </thead>
+                            <tbody id="shipTrackTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>`;
 
@@ -258,7 +273,7 @@ function renderShipTrack(payload) {
         const basemapSelect = document.getElementById('shipTrackBasemapSelect');
         const gradientSelect = document.getElementById('shipTrackGradientSelect');
         let activeBaseLayer = null;
-        let activeGradient = (gradientSelect && gradientSelect.value) ? gradientSelect.value : 'viridis';
+        let activeGradient = (gradientSelect && gradientSelect.value) ? gradientSelect.value : 'plasma';
 
         const createBaseLayer = (key) => {
             switch (key) {
@@ -365,6 +380,42 @@ function renderShipTrack(payload) {
 
         const tableBody = container.querySelector('#shipTrackTableBody');
         const legendVar = container.querySelector('#shipTrackLegendVar');
+        const mapPanel = container.querySelector('#shipTrackMapPanel');
+        const tablePanel = container.querySelector('#shipTrackTablePanel');
+        const tableWrap = container.querySelector('#shipTrackTableWrap');
+        const tableToggle = container.querySelector('#shipTrackTableToggle');
+        let isTableExpanded = false;
+
+        const setTableExpanded = (expanded) => {
+            isTableExpanded = expanded;
+            if (!mapPanel || !tablePanel || !tableWrap || !tableToggle) {
+                return;
+            }
+
+            if (expanded) {
+                mapPanel.style.flex = '1 1 62%';
+                tablePanel.style.flex = '1 1 38%';
+                tablePanel.style.minHeight = '180px';
+                tablePanel.style.maxHeight = 'none';
+                tableWrap.style.display = 'block';
+                tableToggle.textContent = 'Data Points (click to collapse)';
+            } else {
+                mapPanel.style.flex = '1 1 auto';
+                tablePanel.style.flex = '0 0 44px';
+                tablePanel.style.minHeight = '44px';
+                tablePanel.style.maxHeight = '44px';
+                tableWrap.style.display = 'none';
+                tableToggle.textContent = 'Data Points (click to expand)';
+            }
+
+            setTimeout(() => map.invalidateSize(), 180);
+        };
+
+        if (tableToggle) {
+            tableToggle.addEventListener('click', () => {
+                setTableExpanded(!isTableExpanded);
+            });
+        }
 
         const buildPointDetailsHtml = (point) => {
             const valueRows = valueVars.map(v => {
@@ -528,11 +579,11 @@ function renderShipTrack(payload) {
 
         if (gradientSelect) {
             if (!gradientSelect.value) {
-                gradientSelect.value = 'viridis';
+                gradientSelect.value = 'plasma';
             }
             activeGradient = gradientSelect.value;
             gradientSelect.onchange = () => {
-                activeGradient = gradientSelect.value || 'viridis';
+                activeGradient = gradientSelect.value || 'plasma';
                 drawTrack();
             };
         }
@@ -567,6 +618,7 @@ function renderShipTrack(payload) {
         }
 
         renderTable();
+        setTableExpanded(false);
         drawTrack();
     }).catch((err) => {
         container.innerHTML = `<p style="color:#e74c3c; text-align:center; margin:16px 0;">Error: ${err && err.message ? err.message : 'Unable to render ship track'}</p>`;
