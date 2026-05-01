@@ -1,221 +1,367 @@
 // js/ship-track.js
 function renderShipTrack(payload) {
-
-    // Force all fetch responses to be treated as UTF-8
-    const originalFetch = window.fetch;
-    window.fetch = function (...args) {
-        return originalFetch(...args).then(response => {
-            // Clone the response and override its charset
-            const clone = response.clone();
-            const newHeaders = new Headers(clone.headers);
-            newHeaders.set('Content-Type', 'application/json; charset=utf-8');
-            return new Response(clone.body, {
-                status: clone.status,
-                statusText: clone.statusText,
-                headers: newHeaders
-            });
-        });
-    };
-
-    const { ship, date, order, history_id, server } = payload;
-
-    // Read current time range from the form inputs (this is the key!)
-    const hsInput = document.querySelector('input[name="hs"]');
-    const heInput = document.querySelector('input[name="he"]');
-    let hs = '00', he = '23';
-    if (hsInput && heInput) {
-        hs = hsInput.value.padStart(2, '0');
-        he = heInput.value.padStart(2, '0');
+    const { ship, date, order, history_id, server, chartId = null } = payload;
+    const container = document.getElementById('shipTrackContainer');
+    if (!container) {
+        return;
     }
 
-    const container = document.getElementById('shipTrackContainer');
-    container.innerHTML = '<p>Loading ship track and map...</p>';
+    const normalizeHour = (value, fallback) => {
+        const parsed = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
+        if (isNaN(parsed)) {
+            return fallback;
+        }
+        return Math.max(0, Math.min(23, parsed)).toString().padStart(2, '0');
+    };
+
+    const parseNumeric = (value) => {
+        if (value === null || typeof value === 'undefined' || value === '') {
+            return null;
+        }
+        const parsed = parseFloat(String(value).replace(/[^\d.-]/g, ''));
+        return isNaN(parsed) ? null : parsed;
+    };
+
+    const hsInput = document.querySelector('input[name="hs"]');
+    const heInput = document.querySelector('input[name="he"]');
+    const hs = normalizeHour(hsInput ? hsInput.value : null, '00');
+    const he = normalizeHour(heInput ? heInput.value : null, '23');
+
+    const safeShip = String(ship || '').replace(/[^\x00-\x7F]/g, '');
+    const safeOrder = String(order || '').replace(/[^\x00-\x7F]/g, '');
+    const safeDate = String(date || '').replace(/[^\x00-\x7F]/g, '');
+
+    const currentPayload = (chartId && window.__chartPayloads && window.__chartPayloads[chartId])
+        ? window.__chartPayloads[chartId]
+        : (window.__originalChartData || null);
+
+    const allPlottedVars = currentPayload && currentPayload.plotData
+        ? Object.keys(currentPayload.plotData)
+        : [];
+
+    const selectionState = window.__combinedSelectionState || {};
+    const selectedSet = selectionState[chartId] || selectionState.__default__ || null;
+    const selectedVars = (selectedSet && selectedSet.size)
+        ? allPlottedVars.filter(v => selectedSet.has(v))
+        : allPlottedVars.slice();
+
+    const colorVars = selectedVars.filter(v => {
+        const upper = String(v).toUpperCase();
+        return upper !== 'LAT' && upper !== 'LON';
+    });
+
+    const legendNameMap = currentPayload && currentPayload.longNames ? currentPayload.longNames : {};
+
+    container.innerHTML = '<p style="margin:10px 0; text-align:center;">Loading ship track and map...</p>';
 
     const possibleLatVars = ['LAT', 'lat', 'Lat'];
     const possibleLonVars = ['LON', 'lon', 'Lon'];
 
-    let latData = null, lonData = null;
-    let usedLatVar = '', usedLonVar = '';
-
-    const fetchVar = (varName) => {
-        const url = `${server}/charts/plot_chart.php?ship=${ship}&date=${date}&order=${order}&var=${varName}&version_no=100&hs=${hs}&he=${he}&history_id=${history_id}`;
-        return fetch(url)
-            .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
-            .then(data => {
-                const values = Object.values(data).filter(v => v !== null && v !== '');
-                return values.length > 0 ? { data, varName } : null;
-            })
-            .catch(() => null);
+    const uniqueVarsToFetch = [];
+    const addFetchVar = (name) => {
+        if (name && !uniqueVarsToFetch.includes(name)) {
+            uniqueVarsToFetch.push(name);
+        }
     };
 
-    Promise.all([
-        ...possibleLatVars.map(fetchVar),
-        ...possibleLonVars.map(fetchVar)
-    ])
-        .then(results => {
-            for (const res of results) {
-                if (res && possibleLatVars.includes(res.varName) && !latData) { latData = res.data; usedLatVar = res.varName; }
-                if (res && possibleLonVars.includes(res.varName) && !lonData) { lonData = res.data; usedLonVar = res.varName; }
-            }
+    possibleLatVars.forEach(addFetchVar);
+    possibleLonVars.forEach(addFetchVar);
+    colorVars.forEach(addFetchVar);
 
-            if (!latData || !lonData) {
-                container.innerHTML = `<p style="color:#e74c3c; text-align:center;">No position data found for ${hs}:00 – ${he}:59 UTC</p>`;
+    const fetchVar = (varName) => {
+        const url = `${server}/charts/plot_chart.php?ship=${encodeURIComponent(ship)}&date=${encodeURIComponent(date)}&order=${encodeURIComponent(order)}&var=${encodeURIComponent(varName)}&version_no=100&hs=${encodeURIComponent(hs)}&he=${encodeURIComponent(he)}&history_id=${encodeURIComponent(history_id)}`;
+        return fetch(url)
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+            .then(data => ({ varName, data }))
+            .catch(() => ({ varName, data: null }));
+    };
+
+    const colorForRatio = (ratio) => {
+        const r = Math.max(0, Math.min(1, ratio));
+        if (r <= 0.5) {
+            const t = r / 0.5;
+            const red = Math.round(44 + (253 - 44) * t);
+            const green = Math.round(123 + (174 - 123) * t);
+            const blue = Math.round(182 + (97 - 182) * t);
+            return `rgb(${red}, ${green}, ${blue})`;
+        }
+        const t = (r - 0.5) / 0.5;
+        const red = Math.round(253 + (215 - 253) * t);
+        const green = Math.round(174 + (25 - 174) * t);
+        const blue = Math.round(97 + (28 - 97) * t);
+        return `rgb(${red}, ${green}, ${blue})`;
+    };
+
+    Promise.all(uniqueVarsToFetch.map(fetchVar)).then((responses) => {
+        let latData = null;
+        let lonData = null;
+        let usedLatVar = '';
+        let usedLonVar = '';
+
+        const varDataByName = {};
+        responses.forEach(item => {
+            if (!item || !item.varName || !item.data) {
                 return;
             }
-
-            const latEntries = Object.entries(latData);
-            const points = [];
-            let rows = '';
-            let validCount = 0;
-
-            for (let i = 0; i < latEntries.length; i++) {
-                const [time, rawLat] = latEntries[i];
-                const lonEntry = Object.entries(lonData).find(([t]) => t === time);
-                const rawLon = lonEntry ? lonEntry[1] : null;
-
-                // remove UTF issues with parseFloat
-                const latParsed = parseFloat(String(rawLat).replace(/[^\d.-]/g, ''));
-                const lonParsed = parseFloat(String(rawLon).replace(/[^\d.-]/g, ''));
-
-                if (isNaN(latParsed) || isNaN(lonParsed)) continue;
-
-                // Cap coordinates to 2 decimal places for both display and mapping.
-                const latNum = Math.round(latParsed * 100) / 100;
-                const lonNum = Math.round(lonParsed * 100) / 100;
-
-                points.push([latNum, lonNum, time]);
-
-                rows += `<tr>
-        <td>${time}</td>
-            <td style="text-align:right;">${latNum.toFixed(2)}&deg</td>
-            <td style="text-align:right;">${lonNum.toFixed(2)}&deg</td>
-    </tr>`;
-                validCount++;
-            }
-
-            if (validCount === 0) {
-                container.innerHTML = '<p style="color:#e74c3c;">No valid points in selected time range.</p>';
-                return;
-            }
-
-            // =============== RENDER TABLE + MAP ===============
-            container.innerHTML = `
-                <h3 style="margin:0 0 10px; text-align:center;">
-                    Ship Track - ${ship.replace(/[^\x00-\x7F]/g, '')} (Order ${order.replace(/[^\x00-\x7F]/g, '')} - ${date.replace(/[^\x00-\x7F]/g, '')})
-                    <small style="display:block; color:#666;">
-                        ${usedLatVar}/${usedLonVar} | ${hs}:00 - ${he}:59 UTC
-                    </small>
-                </h3>
-
-                <!-- Flex container: table small, map dominates -->
-                <div style="display:flex; flex-direction:column; height:80vh; max-height:900px; gap:12px;">
-                    
-                    <!-- Table: fixed height ~10 rows visible -->
-                    <div style="flex: 0 0 auto; max-height:180px; overflow-y:auto; border:1px solid #ddd; background:white; border-radius:6px;">
-                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                            <thead style="background:#2c3e50; color:white; position:sticky; top:0; z-index:10;">
-                                <tr>
-                                    <th style="padding:8px;">Time (UTC)</th>
-                                    <th style="padding:8px; text-align:right;">Lat</th>
-                                    <th style="padding:8px; text-align:right;">Lon</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
-
-                    <!-- Map takes all remaining space -->
-                    <div id="shipTrackMap" style="flex: 1; min-height:400px; border:2px solid #3498db; border-radius:8px;"></div>
-                </div>
-
-                <p style="text-align:center; margin:10px 0 0; color:#27ae60; font-weight:bold;">
-                    ${validCount} points plotted on map
-                </p>`;
-
-            // =============== LEAFLET MAP ===============
-            const map = L.map('shipTrackMap').fitBounds(points.map(p => [p[0], p[1]]));
-
-            // =============== PREVENT BACKGROUND SCROLL WHEN HOVERING OVER CONTAINER ===============
-            const containerElement = container;
-
-            // Stop scroll propagation when mouse is over the ship track panel
-            containerElement.addEventListener('wheel', (e) => {
-                if (e.deltaY === 0) return;
-
-                const atTop = containerElement.scrollTop === 0 && e.deltaY < 0;
-                const atBottom = containerElement.scrollTop + containerElement.clientHeight >= containerElement.scrollHeight - 10 && e.deltaY > 0;
-
-                if (atTop || atBottom) {
-                    e.preventDefault(); // Only prevent if trying to scroll past bounds
-                }
-            }, { passive: false });
-
-            // Also block mousewheel on map specifically (Leaflet sometimes eats events weirdly)
-            containerElement.addEventListener('mouseenter', () => {
-                document.body.style.overflow = 'hidden';
-            });
-            containerElement.addEventListener('mouseleave', () => {
-                document.body.style.overflow = '';
-            });
-
-            // 1. Satellite background
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: '© Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
-            }).addTo(map);
-
-            // 2. Labels on top (cities, countries, islands, oceans)
-            L.tileLayer('https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Labels/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: '© Esri — Labels'
-            }).addTo(map);
-
-            // Polyline (the actual track)
-            const polyline = L.polyline(points.map(p => [p[0], p[1]]), {
-                color: '#e74c3c',
-                weight: 4,
-                opacity: 0.8
-            }).addTo(map);
-
-            // Start marker (green)
-            L.circleMarker([points[0][0], points[0][1]], {
-                radius: 8,
-                fillColor: '#2ecc71',
-                color: '#000',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map)
-                .bindPopup(`<b>Start</b><br>${points[0][2]}`);
-
-            // End marker (red)
-            const last = points[points.length - 1];
-            L.circleMarker([last[0], last[1]], {
-                radius: 8,
-                fillColor: '#e74c3c',
-                color: '#000',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map)
-                .bindPopup(`<b>End</b><br>${last[2]}`);
-
-            // Add a small legend
-            const legend = L.control({ position: 'bottomright' });
-            legend.onAdd = () => {
-                const div = L.DomUtil.create('div', 'info legend');
-                div.innerHTML = `
-                <i style="background:#2ecc71; width:12px; height:12px; border-radius:50%; display:inline-block;"></i> Start<br>
-                <i style="background:#e74c3c; width:12px; height:12px; border-radius:50%; display:inline-block;"></i> End`;
-                div.style.background = 'rgba(255,255,255,0.8)';
-                div.style.padding = '6px 8px';
-                div.style.fontSize = '12px';
-                div.style.borderRadius = '5px';
-                return div;
-            };
-            legend.addTo(map);
-        })
-        .catch(err => {
-            container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+            varDataByName[item.varName] = item.data;
         });
+
+        for (let i = 0; i < possibleLatVars.length; i++) {
+            const candidate = possibleLatVars[i];
+            if (varDataByName[candidate] && Object.keys(varDataByName[candidate]).length > 0) {
+                latData = varDataByName[candidate];
+                usedLatVar = candidate;
+                break;
+            }
+        }
+
+        for (let i = 0; i < possibleLonVars.length; i++) {
+            const candidate = possibleLonVars[i];
+            if (varDataByName[candidate] && Object.keys(varDataByName[candidate]).length > 0) {
+                lonData = varDataByName[candidate];
+                usedLonVar = candidate;
+                break;
+            }
+        }
+
+        if (!latData || !lonData) {
+            container.innerHTML = `<p style="color:#e74c3c; text-align:center; margin:16px 0;">No position data found for ${hs}:00 - ${he}:59 UTC.</p>`;
+            return;
+        }
+
+        const lonMap = new Map(Object.entries(lonData));
+        const points = [];
+        Object.entries(latData).forEach(([time, rawLat]) => {
+            const rawLon = lonMap.has(time) ? lonMap.get(time) : null;
+            const latNum = parseNumeric(rawLat);
+            const lonNum = parseNumeric(rawLon);
+            if (latNum === null || lonNum === null) {
+                return;
+            }
+
+            const point = {
+                time,
+                lat: Math.round(latNum * 100) / 100,
+                lon: Math.round(lonNum * 100) / 100,
+                vars: {}
+            };
+
+            colorVars.forEach(v => {
+                const source = varDataByName[v];
+                point.vars[v] = source && Object.prototype.hasOwnProperty.call(source, time)
+                    ? parseNumeric(source[time])
+                    : null;
+            });
+
+            points.push(point);
+        });
+
+        if (!points.length) {
+            container.innerHTML = '<p style="color:#e74c3c; text-align:center; margin:16px 0;">No valid points in the selected time range.</p>';
+            return;
+        }
+
+        let activeVar = colorVars.length ? colorVars[0] : null;
+
+        const toggleHtml = colorVars.length > 1
+            ? `<div id="shipTrackVarToggles" style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px;"></div>`
+            : '';
+
+        container.innerHTML = `
+            <div style="display:flex; flex-direction:column; height:100%; min-height:0; gap:10px;">
+                <div style="flex:0 0 auto;">
+                    <h3 style="margin:0 0 4px; text-align:center; color:#19324d;">
+                        Ship Track - ${safeShip} (Order ${safeOrder} - ${safeDate})
+                    </h3>
+                    <div style="text-align:center; color:#5b6b79; font-size:12px;">
+                        ${usedLatVar}/${usedLonVar} | ${hs}:00 - ${he}:59 UTC | ${points.length} points
+                    </div>
+                    ${toggleHtml}
+                </div>
+                <div id="shipTrackMap" style="flex:1 1 62%; min-height:320px; border:2px solid #2f7db5; border-radius:10px;"></div>
+                <div style="flex:1 1 38%; min-height:180px; overflow:auto; border:1px solid #d3dde8; border-radius:8px; background:#fff;">
+                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead style="background:#214764; color:#fff; position:sticky; top:0; z-index:2;">
+                            <tr>
+                                <th style="padding:7px 8px; text-align:left;">Time (UTC)</th>
+                                <th style="padding:7px 8px; text-align:right;">Lat</th>
+                                <th style="padding:7px 8px; text-align:right;">Lon</th>
+                                <th id="shipTrackVarHeader" style="padding:7px 8px; text-align:right;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shipTrackTableBody"></tbody>
+                    </table>
+                </div>
+            </div>`;
+
+        const map = L.map('shipTrackMap', { preferCanvas: true }).fitBounds(points.map(p => [p.lat, p.lon]));
+        setTimeout(() => map.invalidateSize(), 0);
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri'
+        }).addTo(map);
+
+        L.tileLayer('https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Labels/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri Labels'
+        }).addTo(map);
+
+        const trackLayer = L.layerGroup().addTo(map);
+
+        L.circleMarker([points[0].lat, points[0].lon], {
+            radius: 7,
+            fillColor: '#2ecc71',
+            color: '#000',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup(`<b>Start</b><br>${points[0].time}`);
+
+        const lastPoint = points[points.length - 1];
+        L.circleMarker([lastPoint.lat, lastPoint.lon], {
+            radius: 7,
+            fillColor: '#e74c3c',
+            color: '#000',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup(`<b>End</b><br>${lastPoint.time}`);
+
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = () => {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.style.background = 'rgba(255,255,255,0.9)';
+            div.style.padding = '8px 10px';
+            div.style.fontSize = '12px';
+            div.style.borderRadius = '6px';
+            div.style.lineHeight = '1.4';
+            div.innerHTML = `
+                <div><span style="display:inline-block;width:10px;height:10px;background:#2ecc71;border-radius:50%;margin-right:6px;"></span>Start</div>
+                <div><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;margin-right:6px;"></span>End</div>
+                <div id="shipTrackLegendVar" style="margin-top:4px;color:#334b63;"></div>`;
+            return div;
+        };
+        legend.addTo(map);
+
+        const varHeader = container.querySelector('#shipTrackVarHeader');
+        const tableBody = container.querySelector('#shipTrackTableBody');
+        const legendVar = container.querySelector('#shipTrackLegendVar');
+
+        const renderTable = () => {
+            const headerLabel = activeVar
+                ? (legendNameMap[activeVar] ? `${activeVar} (${legendNameMap[activeVar]})` : activeVar)
+                : 'Track Color';
+
+            if (varHeader) {
+                varHeader.textContent = headerLabel;
+            }
+
+            if (!tableBody) {
+                return;
+            }
+
+            let rows = '';
+            points.forEach(p => {
+                const value = activeVar ? p.vars[activeVar] : null;
+                rows += `<tr style="border-bottom:1px solid #eef2f7;">
+                    <td style="padding:6px 8px;">${p.time}</td>
+                    <td style="padding:6px 8px; text-align:right;">${p.lat.toFixed(2)}&deg;</td>
+                    <td style="padding:6px 8px; text-align:right;">${p.lon.toFixed(2)}&deg;</td>
+                    <td style="padding:6px 8px; text-align:right;">${value === null ? '-' : value.toFixed(3)}</td>
+                </tr>`;
+            });
+            tableBody.innerHTML = rows;
+        };
+
+        const drawTrack = () => {
+            trackLayer.clearLayers();
+
+            if (points.length < 2) {
+                return;
+            }
+
+            let min = null;
+            let max = null;
+            if (activeVar) {
+                points.forEach(p => {
+                    const value = p.vars[activeVar];
+                    if (value === null) {
+                        return;
+                    }
+                    min = (min === null) ? value : Math.min(min, value);
+                    max = (max === null) ? value : Math.max(max, value);
+                });
+            }
+
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                let segmentColor = '#f39c12';
+
+                if (activeVar && min !== null && max !== null) {
+                    const segmentValue = curr.vars[activeVar];
+                    if (segmentValue !== null && max > min) {
+                        const ratio = (segmentValue - min) / (max - min);
+                        segmentColor = colorForRatio(ratio);
+                    } else if (segmentValue !== null) {
+                        segmentColor = colorForRatio(0.5);
+                    } else {
+                        segmentColor = '#9aa7b7';
+                    }
+                }
+
+                L.polyline([[prev.lat, prev.lon], [curr.lat, curr.lon]], {
+                    color: segmentColor,
+                    weight: 4,
+                    opacity: 0.9
+                }).addTo(trackLayer);
+            }
+
+            if (legendVar) {
+                if (activeVar && min !== null && max !== null) {
+                    legendVar.innerHTML = `${activeVar}: ${min.toFixed(3)} to ${max.toFixed(3)}`;
+                } else if (activeVar) {
+                    legendVar.innerHTML = `${activeVar}: no numeric range`;
+                } else {
+                    legendVar.innerHTML = 'Single-color track';
+                }
+            }
+        };
+
+        if (colorVars.length > 1) {
+            const toggleHost = container.querySelector('#shipTrackVarToggles');
+            if (toggleHost) {
+                colorVars.forEach(v => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = legendNameMap[v] ? `${v} - ${legendNameMap[v]}` : v;
+                    button.style.border = '1px solid #7c91a4';
+                    button.style.padding = '5px 9px';
+                    button.style.borderRadius = '999px';
+                    button.style.cursor = 'pointer';
+                    button.style.fontSize = '12px';
+                    button.style.background = (v === activeVar) ? '#214764' : '#f5f8fb';
+                    button.style.color = (v === activeVar) ? '#fff' : '#214764';
+                    button.addEventListener('click', () => {
+                        activeVar = v;
+                        Array.from(toggleHost.children).forEach(child => {
+                            child.style.background = '#f5f8fb';
+                            child.style.color = '#214764';
+                        });
+                        button.style.background = '#214764';
+                        button.style.color = '#fff';
+                        renderTable();
+                        drawTrack();
+                    });
+                    toggleHost.appendChild(button);
+                });
+            }
+        }
+
+        renderTable();
+        drawTrack();
+    }).catch((err) => {
+        container.innerHTML = `<p style="color:#e74c3c; text-align:center; margin:16px 0;">Error: ${err && err.message ? err.message : 'Unable to render ship track'}</p>`;
+    });
 }

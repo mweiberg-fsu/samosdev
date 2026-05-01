@@ -592,7 +592,7 @@ SCRIPT;
   echo '      <button onclick="downloadCombinedPlot(\'combinedChart\')">Download PNG</button>';
   echo '      <button onclick="downloadCombinedCSV(\'combinedChart\')">Download CSV</button>';
   echo '      <button onclick="openZoomModal(\'combinedChart\')">Zoom & Pan</button>';
-  echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
+  echo '      <button onclick="openShipTrackModal(this, \'combinedChart\')">Ship Track</button>';
   echo '      <button onclick="togglePlotFlags(\'combinedChart\', this)">Hide Flags</button>';
   echo '    </div>';
   echo '  </details>';

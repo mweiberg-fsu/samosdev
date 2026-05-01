@@ -351,7 +351,7 @@ FORM;
     echo '      <button onclick="downloadCombinedPlot(\'' . $chartId . '\')">Download PNG</button>';
     echo '      <button onclick="downloadCombinedCSV(\'' . $chartId . '\')">Download CSV</button>';
     echo '      <button onclick="openZoomModal(\'' . $chartId . '\')">Zoom & Pan</button>';
-    echo '      <button onclick="openShipTrackModal()">Ship Track</button>';
+    echo '      <button onclick="openShipTrackModal(this, \'' . $chartId . '\')">Ship Track</button>';
     echo '      <button onclick="togglePlotFlags(\'' . $chartId . '\', this)">Hide Flags</button>';
     echo '    </div>';
     echo '  </details>';

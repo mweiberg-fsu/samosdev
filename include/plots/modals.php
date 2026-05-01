@@ -405,21 +405,39 @@ function RenderModalFunctions()
   global $ship, $date, $order, $file_history_id, $SERVER;
   
   echo '<script>
-  function openShipTrackModal() {
-      document.getElementById("shipTrackModal").style.display = "flex";
-      if (typeof renderShipTrack === "function") {
-          renderShipTrack({
-              ship: "' . addslashes($ship) . '",
-              date: "' . addslashes($date) . '",
-              order: "' . addslashes($order) . '",
-              history_id: "' . $file_history_id . '",
-              server: "' . $SERVER . '"
-          });
+  function resolveShipTrackChartId(triggerElement, chartId) {
+    if (chartId) {
+      return chartId;
+    }
+    if (triggerElement && typeof triggerElement.closest === "function") {
+      const wrap = triggerElement.closest(".plot-menu-wrap");
+      if (wrap) {
+        const chartDiv = wrap.querySelector("div[id]");
+        if (chartDiv && chartDiv.id) {
+          return chartDiv.id;
+        }
       }
+    }
+    return null;
+  }
+
+  function openShipTrackModal(triggerElement, chartId) {
+    document.getElementById("shipTrackModal").style.display = "flex";
+    if (typeof renderShipTrack === "function") {
+      renderShipTrack({
+        ship: "' . addslashes($ship) . '",
+        date: "' . addslashes($date) . '",
+        order: "' . addslashes($order) . '",
+        history_id: "' . $file_history_id . '",
+        server: "' . $SERVER . '",
+        chartId: resolveShipTrackChartId(triggerElement, chartId)
+      });
+    }
   }
 
   function closeShipTrackModal() {
-      document.getElementById("shipTrackModal").style.display = "none";
+    document.getElementById("shipTrackModal").style.display = "none";
+    document.body.style.overflow = "";
   }
 
   // Close modals when clicking outside
