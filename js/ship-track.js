@@ -93,18 +93,23 @@ function renderShipTrack(payload) {
     };
 
     const colorForRatio = (ratio) => {
+        const stops = [
+            [68, 1, 84],
+            [59, 82, 139],
+            [33, 145, 140],
+            [94, 201, 98],
+            [253, 231, 37]
+        ];
         const r = Math.max(0, Math.min(1, ratio));
-        if (r <= 0.5) {
-            const t = r / 0.5;
-            const red = Math.round(44 + (253 - 44) * t);
-            const green = Math.round(123 + (174 - 123) * t);
-            const blue = Math.round(182 + (97 - 182) * t);
-            return `rgb(${red}, ${green}, ${blue})`;
-        }
-        const t = (r - 0.5) / 0.5;
-        const red = Math.round(253 + (215 - 253) * t);
-        const green = Math.round(174 + (25 - 174) * t);
-        const blue = Math.round(97 + (28 - 97) * t);
+        const scaled = r * (stops.length - 1);
+        const i = Math.min(stops.length - 2, Math.floor(scaled));
+        const t = scaled - i;
+
+        const c0 = stops[i];
+        const c1 = stops[i + 1];
+        const red = Math.round(c0[0] + (c1[0] - c0[0]) * t);
+        const green = Math.round(c0[1] + (c1[1] - c0[1]) * t);
+        const blue = Math.round(c0[2] + (c1[2] - c0[2]) * t);
         return `rgb(${red}, ${green}, ${blue})`;
     };
 
