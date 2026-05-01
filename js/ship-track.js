@@ -427,7 +427,7 @@ function renderShipTrack(payload) {
                 const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
                 const value = point.vars[v];
                 const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
-                return `<div style="display:flex; justify-content:space-between; gap:12px; margin-top:2px;"><span style="color:#415a72;">${escapeHtml(label)}</span><span style="font-weight:600; text-align:right;">${escapeHtml(formatted)}</span></div>`;
+                return `<div style="display:flex; justify-content:space-between; gap:12px; margin-top:2px;"><span style="color:#415a72; font-weight:700;">${escapeHtml(label)}</span><span style="text-align:right;">${escapeHtml(formatted)}</span></div>`;
             }).join('');
 
             const valuesBlock = valueRows
