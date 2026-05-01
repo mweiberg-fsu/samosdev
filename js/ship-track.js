@@ -145,6 +145,13 @@ function renderShipTrack(payload) {
         return `rgb(${red}, ${green}, ${blue})`;
     };
 
+    const gradientCss = (gradientKey) => {
+        const stops = gradientStops[gradientKey] || gradientStops.viridis;
+        const step = 100 / (stops.length - 1);
+        const parts = stops.map((c, i) => `rgb(${c[0]}, ${c[1]}, ${c[2]}) ${Math.round(i * step)}%`);
+        return `linear-gradient(90deg, ${parts.join(', ')})`;
+    };
+
     Promise.all(uniqueVarsToFetch.map(fetchVar)).then((responses) => {
         let latData = null;
         let lonData = null;
@@ -373,13 +380,15 @@ function renderShipTrack(payload) {
             div.innerHTML = `
                 <div><span style="display:inline-block;width:10px;height:10px;background:#2ecc71;border-radius:50%;margin-right:6px;"></span>Start</div>
                 <div><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;margin-right:6px;"></span>End</div>
-                <div id="shipTrackLegendVar" style="margin-top:4px;color:#334b63;"></div>`;
+                <div id="shipTrackLegendVar" style="margin-top:4px;color:#334b63;"></div>
+                <div id="shipTrackColorbar" style="margin-top:6px;"></div>`;
             return div;
         };
         legend.addTo(map);
 
         const tableBody = container.querySelector('#shipTrackTableBody');
         const legendVar = container.querySelector('#shipTrackLegendVar');
+        const legendColorbar = document.getElementById('shipTrackColorbar');
         const mapPanel = container.querySelector('#shipTrackMapPanel');
         const tablePanel = container.querySelector('#shipTrackTablePanel');
         const tableWrap = container.querySelector('#shipTrackTableWrap');
@@ -427,7 +436,7 @@ function renderShipTrack(payload) {
                 const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
                 const value = point.vars[v];
                 const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
-                return `<div style="display:flex; justify-content:space-between; gap:12px; margin-top:2px;"><span style="color:#415a72; font-weight:700;">${escapeHtml(label)}</span><span style="text-align:right;">${escapeHtml(formatted)}</span></div>`;
+                return `<div style="margin-top:2px; color:#000;">${escapeHtml(label)}: ${escapeHtml(formatted)}</div>`;
             }).join('');
 
             const valuesBlock = valueRows
@@ -577,6 +586,20 @@ function renderShipTrack(payload) {
                     legendVar.innerHTML = `${activeVar}: no numeric range`;
                 } else {
                     legendVar.innerHTML = 'Single-color track';
+                }
+            }
+
+            if (legendColorbar) {
+                if (activeVar && min !== null && max !== null) {
+                    legendColorbar.innerHTML = `
+                        <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Colorbar (${activeGradient})</div>
+                        <div style="height:10px; border-radius:999px; border:1px solid rgba(0,0,0,0.25); background:${gradientCss(activeGradient)};"></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#2f4356;">
+                            <span>${min.toFixed(3)}</span>
+                            <span>${max.toFixed(3)}</span>
+                        </div>`;
+                } else {
+                    legendColorbar.innerHTML = '<div style="font-size:11px; color:#62778c; margin-top:2px;">Colorbar unavailable</div>';
                 }
             }
         };
