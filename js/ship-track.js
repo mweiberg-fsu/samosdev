@@ -22,6 +22,21 @@ function renderShipTrack(payload) {
         return isNaN(parsed) ? null : parsed;
     };
 
+    const escapeHtml = (value) => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatDateDisplay = (rawDate) => {
+        const clean = String(rawDate || '').replace(/[^\d]/g, '');
+        if (clean.length >= 8) {
+            return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
+        }
+        return String(rawDate || '');
+    };
+
     const hsInput = document.querySelector('input[name="hs"]');
     const heInput = document.querySelector('input[name="he"]');
     const hs = normalizeHour(hsInput ? hsInput.value : null, '00');
@@ -30,6 +45,7 @@ function renderShipTrack(payload) {
     const safeShip = String(ship || '').replace(/[^\x00-\x7F]/g, '');
     const safeOrder = String(order || '').replace(/[^\x00-\x7F]/g, '');
     const safeDate = String(date || '').replace(/[^\x00-\x7F]/g, '');
+    const displayDate = formatDateDisplay(date);
 
     const currentPayload = (chartId && window.__chartPayloads && window.__chartPayloads[chartId])
         ? window.__chartPayloads[chartId]
@@ -74,6 +90,22 @@ function renderShipTrack(payload) {
             .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
             .then(data => ({ varName, data }))
             .catch(() => ({ varName, data: null }));
+    };
+
+    const colorForRatio = (ratio) => {
+        const r = Math.max(0, Math.min(1, ratio));
+        if (r <= 0.5) {
+            const t = r / 0.5;
+            const red = Math.round(44 + (253 - 44) * t);
+            const green = Math.round(123 + (174 - 123) * t);
+            const blue = Math.round(182 + (97 - 182) * t);
+            return `rgb(${red}, ${green}, ${blue})`;
+        }
+        const t = (r - 0.5) / 0.5;
+        const red = Math.round(253 + (215 - 253) * t);
+        const green = Math.round(174 + (25 - 174) * t);
+        const blue = Math.round(97 + (28 - 97) * t);
+        return `rgb(${red}, ${green}, ${blue})`;
     };
 
     Promise.all(uniqueVarsToFetch.map(fetchVar)).then((responses) => {
@@ -145,6 +177,12 @@ function renderShipTrack(payload) {
             return;
         }
 
+        let activeVar = valueVars.length ? valueVars[0] : null;
+
+        const toggleHtml = valueVars.length > 1
+            ? `<div id="shipTrackVarToggles" style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px;"></div>`
+            : '';
+
         const valueHeaderHtml = valueVars.map(v => {
             const headerLabel = legendNameMap[v] ? `${v} (${legendNameMap[v]})` : v;
             return `<th style="padding:7px 8px; text-align:right;">${headerLabel}</th>`;
@@ -159,6 +197,7 @@ function renderShipTrack(payload) {
                     <div style="text-align:center; color:#5b6b79; font-size:12px;">
                         ${usedLatVar}/${usedLonVar} | ${hs}:00 - ${he}:59 UTC | ${points.length} points
                     </div>
+                    ${toggleHtml}
                 </div>
                 <div id="shipTrackMap" style="flex:1 1 62%; min-height:320px; border:2px solid #2f7db5; border-radius:10px;"></div>
                 <div style="flex:1 1 38%; min-height:180px; overflow:auto; border:1px solid #d3dde8; border-radius:8px; background:#fff;">
@@ -190,6 +229,7 @@ function renderShipTrack(payload) {
         }).addTo(map);
 
         const trackLayer = L.layerGroup().addTo(map);
+        const pointInteractionLayer = L.layerGroup().addTo(map);
 
         L.circleMarker([points[0].lat, points[0].lon], {
             radius: 7,
@@ -221,12 +261,36 @@ function renderShipTrack(payload) {
             div.innerHTML = `
                 <div><span style="display:inline-block;width:10px;height:10px;background:#2ecc71;border-radius:50%;margin-right:6px;"></span>Start</div>
                 <div><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;margin-right:6px;"></span>End</div>
-                <div style="margin-top:4px;color:#334b63;">Track: fixed line color</div>`;
+                <div id="shipTrackLegendVar" style="margin-top:4px;color:#334b63;"></div>`;
             return div;
         };
         legend.addTo(map);
 
         const tableBody = container.querySelector('#shipTrackTableBody');
+        const legendVar = container.querySelector('#shipTrackLegendVar');
+
+        const buildPointDetailsHtml = (point) => {
+            const valueRows = valueVars.map(v => {
+                const label = legendNameMap[v] ? `${v} (${legendNameMap[v]})` : v;
+                const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
+                const value = point.vars[v];
+                const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
+                return `<tr><td style="padding:2px 10px 2px 0; color:#415a72;">${escapeHtml(label)}</td><td style="padding:2px 0; text-align:right; font-weight:600;">${escapeHtml(formatted)}</td></tr>`;
+            }).join('');
+
+            const valuesBlock = valueRows
+                ? `<table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:12px;">${valueRows}</table>`
+                : '<div style="margin-top:6px; color:#55697c;">No selected data variables</div>';
+
+            return `
+                <div style="min-width:220px; max-width:300px; font-size:12px; line-height:1.35;">
+                    <div style="font-weight:700; color:#1f3f5b; margin-bottom:4px;">Track Point</div>
+                    <div><strong>Date:</strong> ${escapeHtml(displayDate)}</div>
+                    <div><strong>Time (UTC):</strong> ${escapeHtml(point.time)}</div>
+                    <div><strong>Lat/Lon:</strong> ${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°</div>
+                    ${valuesBlock}
+                </div>`;
+        };
 
         const renderTable = () => {
             if (!tableBody) {
@@ -252,22 +316,110 @@ function renderShipTrack(payload) {
 
         const drawTrack = () => {
             trackLayer.clearLayers();
+            pointInteractionLayer.clearLayers();
 
             if (points.length < 2) {
                 return;
             }
 
+            let min = null;
+            let max = null;
+            if (activeVar) {
+                points.forEach(p => {
+                    const value = p.vars[activeVar];
+                    if (value === null) {
+                        return;
+                    }
+                    min = (min === null) ? value : Math.min(min, value);
+                    max = (max === null) ? value : Math.max(max, value);
+                });
+            }
+
             for (let i = 1; i < points.length; i++) {
                 const prev = points[i - 1];
                 const curr = points[i];
+                let segmentColor = '#f39c12';
+
+                if (activeVar && min !== null && max !== null) {
+                    const segmentValue = curr.vars[activeVar];
+                    if (segmentValue !== null && max > min) {
+                        const ratio = (segmentValue - min) / (max - min);
+                        segmentColor = colorForRatio(ratio);
+                    } else if (segmentValue !== null) {
+                        segmentColor = colorForRatio(0.5);
+                    } else {
+                        segmentColor = '#9aa7b7';
+                    }
+                }
 
                 L.polyline([[prev.lat, prev.lon], [curr.lat, curr.lon]], {
-                    color: '#f39c12',
+                    color: segmentColor,
                     weight: 4,
                     opacity: 0.9
                 }).addTo(trackLayer);
             }
+
+            points.forEach(point => {
+                const tooltipHtml = buildPointDetailsHtml(point);
+                L.circleMarker([point.lat, point.lon], {
+                    radius: 8,
+                    color: '#ffffff',
+                    weight: 0,
+                    opacity: 0,
+                    fillOpacity: 0,
+                    interactive: true
+                })
+                    .addTo(pointInteractionLayer)
+                    .bindTooltip(tooltipHtml, {
+                        sticky: true,
+                        direction: 'top',
+                        opacity: 0.95
+                    })
+                    .bindPopup(tooltipHtml, {
+                        maxWidth: 320,
+                        autoPan: true
+                    });
+            });
+
+            if (legendVar) {
+                if (activeVar && min !== null && max !== null) {
+                    legendVar.innerHTML = `${activeVar}: ${min.toFixed(3)} to ${max.toFixed(3)}`;
+                } else if (activeVar) {
+                    legendVar.innerHTML = `${activeVar}: no numeric range`;
+                } else {
+                    legendVar.innerHTML = 'Single-color track';
+                }
+            }
         };
+
+        if (valueVars.length > 1) {
+            const toggleHost = container.querySelector('#shipTrackVarToggles');
+            if (toggleHost) {
+                valueVars.forEach(v => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = legendNameMap[v] ? `${v} - ${legendNameMap[v]}` : v;
+                    button.style.border = '1px solid #7c91a4';
+                    button.style.padding = '5px 9px';
+                    button.style.borderRadius = '999px';
+                    button.style.cursor = 'pointer';
+                    button.style.fontSize = '12px';
+                    button.style.background = (v === activeVar) ? '#214764' : '#f5f8fb';
+                    button.style.color = (v === activeVar) ? '#fff' : '#214764';
+                    button.addEventListener('click', () => {
+                        activeVar = v;
+                        Array.from(toggleHost.children).forEach(child => {
+                            child.style.background = '#f5f8fb';
+                            child.style.color = '#214764';
+                        });
+                        button.style.background = '#214764';
+                        button.style.color = '#fff';
+                        drawTrack();
+                    });
+                    toggleHost.appendChild(button);
+                });
+            }
+        }
 
         renderTable();
         drawTrack();
