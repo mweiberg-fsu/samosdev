@@ -372,12 +372,25 @@ function renderShipTrack(payload) {
 
             points.forEach(point => {
                 const tooltipHtml = buildPointDetailsHtml(point);
+                let pointColor = '#f39c12';
+                if (activeVar && min !== null && max !== null) {
+                    const pointValue = point.vars[activeVar];
+                    if (pointValue !== null && max > min) {
+                        const ratio = (pointValue - min) / (max - min);
+                        pointColor = colorForRatio(ratio);
+                    } else if (pointValue !== null) {
+                        pointColor = colorForRatio(0.5);
+                    } else {
+                        pointColor = '#9aa7b7';
+                    }
+                }
+
                 const marker = L.circleMarker([point.lat, point.lon], {
                     radius: 3,
-                    color: '#163a59',
+                    color: pointColor,
                     weight: 1,
                     opacity: 0.95,
-                    fillColor: '#ffffff',
+                    fillColor: pointColor,
                     fillOpacity: 0.95,
                     interactive: true
                 })
