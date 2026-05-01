@@ -230,11 +230,30 @@ function RenderShipTrackModal()
           cursor:pointer;
           box-shadow:0 2px 6px rgba(0,0,0,0.2);
         ">
-          <option value="esri-imagery" selected>Esri Imagery</option>
-          <option value="osm-standard">OpenStreetMap</option>
+          <option value="esri-imagery">Esri Imagery</option>
+          <option value="osm-standard" selected>OpenStreetMap</option>
           <option value="carto-voyager">Carto Voyager</option>
           <option value="opentopo">OpenTopoMap</option>
           <option value="carto-dark">Carto Dark Matter</option>
+        </select>
+        <label for="shipTrackGradientSelect" style="font-size:12px; font-weight:600; opacity:0.92;">Gradient</label>
+        <select id="shipTrackGradientSelect" style="
+            background:linear-gradient(135deg, #27ae60, #1f9d55);
+            color:#ffffff;
+            border:1px solid #188a48;
+            padding:8px 12px;
+            border-radius:6px;
+            font-size:12px;
+            font-weight:700;
+            min-width:155px;
+            cursor:pointer;
+            box-shadow:0 2px 6px rgba(0,0,0,0.2);
+        ">
+          <option value="viridis" selected>Viridis</option>
+          <option value="plasma">Plasma</option>
+          <option value="inferno">Inferno</option>
+          <option value="cividis">Cividis</option>
+          <option value="turbo">Turbo</option>
         </select>
         <button onclick="closeShipTrackModal()" style="
                 background:#e74c3c;

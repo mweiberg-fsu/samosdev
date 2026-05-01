@@ -92,14 +92,46 @@ function renderShipTrack(payload) {
             .catch(() => ({ varName, data: null }));
     };
 
-    const colorForRatio = (ratio) => {
-        const stops = [
+    const gradientStops = {
+        viridis: [
             [68, 1, 84],
             [59, 82, 139],
             [33, 145, 140],
             [94, 201, 98],
             [253, 231, 37]
-        ];
+        ],
+        plasma: [
+            [13, 8, 135],
+            [126, 3, 168],
+            [203, 71, 119],
+            [248, 149, 64],
+            [240, 249, 33]
+        ],
+        inferno: [
+            [0, 0, 4],
+            [87, 15, 109],
+            [187, 55, 84],
+            [249, 142, 8],
+            [252, 255, 164]
+        ],
+        cividis: [
+            [0, 34, 78],
+            [57, 82, 139],
+            [95, 120, 130],
+            [155, 161, 103],
+            [253, 234, 69]
+        ],
+        turbo: [
+            [48, 18, 59],
+            [50, 104, 225],
+            [62, 193, 129],
+            [249, 251, 14],
+            [180, 4, 38]
+        ]
+    };
+
+    const colorForRatio = (ratio, gradientKey) => {
+        const stops = gradientStops[gradientKey] || gradientStops.viridis;
         const r = Math.max(0, Math.min(1, ratio));
         const scaled = r * (stops.length - 1);
         const i = Math.min(stops.length - 2, Math.floor(scaled));
@@ -224,7 +256,9 @@ function renderShipTrack(payload) {
         setTimeout(() => map.invalidateSize(), 0);
 
         const basemapSelect = document.getElementById('shipTrackBasemapSelect');
+        const gradientSelect = document.getElementById('shipTrackGradientSelect');
         let activeBaseLayer = null;
+        let activeGradient = (gradientSelect && gradientSelect.value) ? gradientSelect.value : 'viridis';
 
         const createBaseLayer = (key) => {
             switch (key) {
@@ -275,14 +309,14 @@ function renderShipTrack(payload) {
 
         if (basemapSelect) {
             if (!basemapSelect.value) {
-                basemapSelect.value = 'esri-imagery';
+                basemapSelect.value = 'osm-standard';
             }
             applyBasemap(basemapSelect.value);
             basemapSelect.onchange = () => {
-                applyBasemap(basemapSelect.value || 'esri-imagery');
+                applyBasemap(basemapSelect.value || 'osm-standard');
             };
         } else {
-            applyBasemap('esri-imagery');
+            applyBasemap('osm-standard');
         }
 
         const trackLayer = L.layerGroup().addTo(map);
@@ -407,9 +441,9 @@ function renderShipTrack(payload) {
                     const segmentValue = curr.vars[activeVar];
                     if (segmentValue !== null && max > min) {
                         const ratio = (segmentValue - min) / (max - min);
-                        segmentColor = colorForRatio(ratio);
+                        segmentColor = colorForRatio(ratio, activeGradient);
                     } else if (segmentValue !== null) {
-                        segmentColor = colorForRatio(0.5);
+                        segmentColor = colorForRatio(0.5, activeGradient);
                     } else {
                         segmentColor = '#9aa7b7';
                     }
@@ -429,9 +463,9 @@ function renderShipTrack(payload) {
                     const pointValue = point.vars[activeVar];
                     if (pointValue !== null && max > min) {
                         const ratio = (pointValue - min) / (max - min);
-                        pointColor = colorForRatio(ratio);
+                        pointColor = colorForRatio(ratio, activeGradient);
                     } else if (pointValue !== null) {
-                        pointColor = colorForRatio(0.5);
+                        pointColor = colorForRatio(0.5, activeGradient);
                     } else {
                         pointColor = '#9aa7b7';
                     }
@@ -491,6 +525,17 @@ function renderShipTrack(payload) {
                 }
             }
         };
+
+        if (gradientSelect) {
+            if (!gradientSelect.value) {
+                gradientSelect.value = 'viridis';
+            }
+            activeGradient = gradientSelect.value;
+            gradientSelect.onchange = () => {
+                activeGradient = gradientSelect.value || 'viridis';
+                drawTrack();
+            };
+        }
 
         if (valueVars.length > 1) {
             const toggleHost = container.querySelector('#shipTrackVarToggles');
