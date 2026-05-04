@@ -449,25 +449,12 @@ function renderShipTrack(payload) {
         }
 
         const buildPointDetailsHtml = (point) => {
-            const valueRows = valueVars.map(v => {
-                const label = legendNameMap[v] ? `${v} (${legendNameMap[v]})` : v;
-                const units = (currentPayload && currentPayload.units && currentPayload.units[v]) ? ` ${currentPayload.units[v]}` : '';
-                const value = point.vars[v];
-                const formatted = (value === null) ? '-' : `${value.toFixed(3)}${units}`;
-                return `<div style="margin-top:2px;"><strong>${escapeHtml(label)}</strong>: ${escapeHtml(formatted)}</div>`;
-            }).join('');
-
-            const valuesBlock = valueRows
-                ? `<div style="margin-top:6px; font-size:12px;">${valueRows}</div>`
-                : '<div style="margin-top:6px; color:#55697c;">No selected data variables</div>';
-
             return `
                 <div style="min-width:320px; max-width:420px; font-size:12px; line-height:1.35;">
                     <div style="font-weight:700; color:#1f3f5b; margin-bottom:4px;">Track Point</div>
                     <div><strong>Date:</strong> ${escapeHtml(displayDate)}</div>
                     <div><strong>Time (UTC):</strong> ${escapeHtml(formatTimeDisplay(point.time))}</div>
                     <div><strong>Lat/Lon:</strong> ${point.lat.toFixed(2)}&deg;, ${point.lon.toFixed(2)}&deg;</div>
-                    ${valuesBlock}
                 </div>`;
         };
 
