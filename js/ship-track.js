@@ -398,14 +398,12 @@ function renderShipTrack(payload) {
             div.innerHTML = `
                 <div><span style="display:inline-block;width:10px;height:10px;background:#2ecc71;border-radius:50%;margin-right:6px;"></span>Start</div>
                 <div><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:50%;margin-right:6px;"></span>End</div>
-                <div id="shipTrackLegendVar" style="margin-top:4px;color:#334b63;"></div>
                 <div id="shipTrackColorbar" style="margin-top:6px;"></div>`;
             return div;
         };
         legend.addTo(map);
 
         const tableBody = container.querySelector('#shipTrackTableBody');
-        const legendVar = container.querySelector('#shipTrackLegendVar');
         const legendColorbar = document.getElementById('shipTrackColorbar');
         const mapPanel = container.querySelector('#shipTrackMapPanel');
         const tablePanel = container.querySelector('#shipTrackTablePanel');
@@ -583,16 +581,6 @@ function renderShipTrack(payload) {
                     }
                 });
             });
-
-            if (legendVar) {
-                if (activeVar && min !== null && max !== null) {
-                    legendVar.innerHTML = `${activeVar}: ${min.toFixed(3)} to ${max.toFixed(3)}`;
-                } else if (activeVar) {
-                    legendVar.innerHTML = `${activeVar}: no numeric range`;
-                } else {
-                    legendVar.innerHTML = 'Single-color track';
-                }
-            }
 
             if (legendColorbar) {
                 if (activeVar && min !== null && max !== null) {
