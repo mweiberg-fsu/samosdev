@@ -55,6 +55,13 @@ function renderShipTrack(payload) {
         return value;
     };
 
+    if (!document.getElementById('shipTrackTooltipStyle')) {
+        const style = document.createElement('style');
+        style.id = 'shipTrackTooltipStyle';
+        style.textContent = '.ship-track-tooltip{max-width:640px !important; min-width:420px !important; white-space:normal !important;}';
+        document.head.appendChild(style);
+    }
+
     const hsInput = document.querySelector('input[name="hs"]');
     const heInput = document.querySelector('input[name="he"]');
     const hs = normalizeHour(hsInput ? hsInput.value : null, '00');
@@ -365,7 +372,8 @@ function renderShipTrack(payload) {
         const hoverTooltip = L.tooltip({
             sticky: true,
             direction: 'top',
-            opacity: 0.95
+            opacity: 0.95,
+            className: 'ship-track-tooltip'
         });
 
         L.circleMarker([points[0].lat, points[0].lon], {
@@ -460,7 +468,7 @@ function renderShipTrack(payload) {
                 : '<div style="margin-top:6px; color:#55697c;">No selected data variables</div>';
 
             return `
-                <div style="min-width:320px; max-width:420px; font-size:12px; line-height:1.35;">
+                <div style="min-width:420px; max-width:620px; font-size:12px; line-height:1.35;">
                     <div style="font-weight:700; color:#1f3f5b; margin-bottom:4px;">Track Point</div>
                     <div><strong>Date:</strong> ${escapeHtml(displayDate)}</div>
                     <div><strong>Time (UTC):</strong> ${escapeHtml(formatTimeDisplay(point.time))}</div>
@@ -562,7 +570,7 @@ function renderShipTrack(payload) {
                 })
                     .addTo(pointInteractionLayer)
                     .bindPopup(tooltipHtml, {
-                        maxWidth: 460,
+                        maxWidth: 700,
                         autoPan: true
                     });
 
