@@ -170,12 +170,32 @@ function renderShipTrack(payload) {
         return `rgb(${red}, ${green}, ${blue})`;
     };
 
+    const colorForAnomaly = (value, maxAbs) => {
+        if (value === null || maxAbs <= 0) {
+            return 'rgb(247,247,247)';
+        }
+        const t = Math.max(-1, Math.min(1, value / maxAbs));
+        if (t < 0) {
+            const x = t + 1;
+            const r = Math.round(49 + (247 - 49) * x);
+            const g = Math.round(130 + (247 - 130) * x);
+            const b = Math.round(189 + (247 - 189) * x);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        const r = Math.round(247 + (214 - 247) * t);
+        const g = Math.round(247 + (39 - 247) * t);
+        const b = Math.round(247 + (40 - 247) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+    };
+
     const gradientCss = (gradientKey) => {
         const stops = gradientStops[gradientKey] || gradientStops.viridis;
         const step = 100 / (stops.length - 1);
         const parts = stops.map((c, i) => `rgb(${c[0]}, ${c[1]}, ${c[2]}) ${Math.round(i * step)}%`);
         return `linear-gradient(90deg, ${parts.join(', ')})`;
     };
+
+    const anomalyGradientCss = () => 'linear-gradient(90deg, rgb(49,130,189) 0%, rgb(247,247,247) 50%, rgb(214,39,40) 100%)';
 
     Promise.all(uniqueVarsToFetch.map(fetchVar)).then((responses) => {
         let latData = null;
@@ -247,6 +267,7 @@ function renderShipTrack(payload) {
         }
 
         let activeVar = valueVars.length ? valueVars[0] : null;
+        let anomalyMode = false;
 
         const toggleHtml = valueVars.length > 1
             ? `<div id="shipTrackVarToggles" style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px;"></div>`
@@ -509,15 +530,35 @@ function renderShipTrack(payload) {
 
             let min = null;
             let max = null;
-            if (activeVar) {
-                points.forEach(p => {
-                    const value = p.vars[activeVar];
-                    if (value === null) {
-                        return;
+            let maxAbs = null;
+            const anomalyPair = valueVars.length >= 2 ? [valueVars[0], valueVars[1]] : null;
+
+            const metricForPoint = (p) => {
+                if (anomalyMode && anomalyPair) {
+                    const a = p.vars[anomalyPair[0]];
+                    const b = p.vars[anomalyPair[1]];
+                    if (a === null || b === null) {
+                        return null;
                     }
-                    min = (min === null) ? value : Math.min(min, value);
-                    max = (max === null) ? value : Math.max(max, value);
-                });
+                    return a - b;
+                }
+                if (!activeVar) {
+                    return null;
+                }
+                return p.vars[activeVar];
+            };
+
+            points.forEach(p => {
+                const value = metricForPoint(p);
+                if (value === null) {
+                    return;
+                }
+                min = (min === null) ? value : Math.min(min, value);
+                max = (max === null) ? value : Math.max(max, value);
+            });
+
+            if (anomalyMode && min !== null && max !== null) {
+                maxAbs = Math.max(Math.abs(min), Math.abs(max));
             }
 
             for (let i = 1; i < points.length; i++) {
@@ -525,16 +566,18 @@ function renderShipTrack(payload) {
                 const curr = points[i];
                 let segmentColor = '#f39c12';
 
-                if (activeVar && min !== null && max !== null) {
-                    const segmentValue = curr.vars[activeVar];
-                    if (segmentValue !== null && max > min) {
+                const segmentValue = metricForPoint(curr);
+                if (segmentValue !== null && min !== null && max !== null) {
+                    if (anomalyMode && maxAbs !== null) {
+                        segmentColor = colorForAnomaly(segmentValue, maxAbs);
+                    } else if (max > min) {
                         const ratio = (segmentValue - min) / (max - min);
                         segmentColor = colorForRatio(ratio, activeGradient);
-                    } else if (segmentValue !== null) {
-                        segmentColor = colorForRatio(0.5, activeGradient);
                     } else {
-                        segmentColor = '#9aa7b7';
+                        segmentColor = colorForRatio(0.5, activeGradient);
                     }
+                } else {
+                    segmentColor = '#9aa7b7';
                 }
 
                 L.polyline([[prev.lat, prev.lon], [curr.lat, curr.lon]], {
@@ -547,16 +590,18 @@ function renderShipTrack(payload) {
             points.forEach(point => {
                 const tooltipHtml = buildPointDetailsHtml(point);
                 let pointColor = '#f39c12';
-                if (activeVar && min !== null && max !== null) {
-                    const pointValue = point.vars[activeVar];
-                    if (pointValue !== null && max > min) {
+                const pointValue = metricForPoint(point);
+                if (pointValue !== null && min !== null && max !== null) {
+                    if (anomalyMode && maxAbs !== null) {
+                        pointColor = colorForAnomaly(pointValue, maxAbs);
+                    } else if (max > min) {
                         const ratio = (pointValue - min) / (max - min);
                         pointColor = colorForRatio(ratio, activeGradient);
-                    } else if (pointValue !== null) {
-                        pointColor = colorForRatio(0.5, activeGradient);
                     } else {
-                        pointColor = '#9aa7b7';
+                        pointColor = colorForRatio(0.5, activeGradient);
                     }
+                } else {
+                    pointColor = '#9aa7b7';
                 }
 
                 const marker = L.circleMarker([point.lat, point.lon], {
@@ -605,13 +650,24 @@ function renderShipTrack(payload) {
 
             if (legendColorbar) {
                 if (activeVar && min !== null && max !== null) {
-                    legendColorbar.innerHTML = `
-                        <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Colorbar (${activeGradient})</div>
-                        <div style="height:10px; border-radius:999px; border:1px solid rgba(0,0,0,0.25); background:${gradientCss(activeGradient)};"></div>
-                        <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#2f4356;">
-                            <span>${min.toFixed(3)}</span>
-                            <span>${max.toFixed(3)}</span>
-                        </div>`;
+                    if (anomalyMode && anomalyPair && maxAbs !== null) {
+                        legendColorbar.innerHTML = `
+                            <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Anomaly (${anomalyPair[0]} - ${anomalyPair[1]})</div>
+                            <div style="height:10px; border-radius:999px; border:1px solid rgba(0,0,0,0.25); background:${anomalyGradientCss()};"></div>
+                            <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#2f4356;">
+                                <span>${(-maxAbs).toFixed(3)}</span>
+                                <span>0.000</span>
+                                <span>${maxAbs.toFixed(3)}</span>
+                            </div>`;
+                    } else {
+                        legendColorbar.innerHTML = `
+                            <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Colorbar (${activeGradient})</div>
+                            <div style="height:10px; border-radius:999px; border:1px solid rgba(0,0,0,0.25); background:${gradientCss(activeGradient)};"></div>
+                            <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#2f4356;">
+                                <span>${min.toFixed(3)}</span>
+                                <span>${max.toFixed(3)}</span>
+                            </div>`;
+                    }
                 } else {
                     legendColorbar.innerHTML = '<div style="font-size:11px; color:#62778c; margin-top:2px;">Colorbar unavailable</div>';
                 }
@@ -644,10 +700,16 @@ function renderShipTrack(payload) {
                     button.style.background = (v === activeVar) ? '#214764' : '#f5f8fb';
                     button.style.color = (v === activeVar) ? '#fff' : '#214764';
                     button.addEventListener('click', () => {
+                        anomalyMode = false;
                         activeVar = v;
                         Array.from(toggleHost.children).forEach(child => {
-                            child.style.background = '#f5f8fb';
-                            child.style.color = '#214764';
+                            if (child.dataset.mode === 'anomaly') {
+                                child.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
+                                child.style.color = '#214764';
+                            } else {
+                                child.style.background = '#f5f8fb';
+                                child.style.color = '#214764';
+                            }
                         });
                         button.style.background = '#214764';
                         button.style.color = '#fff';
@@ -655,6 +717,49 @@ function renderShipTrack(payload) {
                     });
                     toggleHost.appendChild(button);
                 });
+
+                if (valueVars.length >= 2) {
+                    const anomalyButton = document.createElement('button');
+                    anomalyButton.type = 'button';
+                    anomalyButton.dataset.mode = 'anomaly';
+                    anomalyButton.textContent = `Anomaly (${valueVars[0]} - ${valueVars[1]})`;
+                    anomalyButton.style.border = '1px solid #7c91a4';
+                    anomalyButton.style.padding = '5px 9px';
+                    anomalyButton.style.borderRadius = '999px';
+                    anomalyButton.style.cursor = 'pointer';
+                    anomalyButton.style.fontSize = '12px';
+                    anomalyButton.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
+                    anomalyButton.style.color = '#214764';
+                    anomalyButton.addEventListener('click', () => {
+                        anomalyMode = !anomalyMode;
+                        Array.from(toggleHost.children).forEach(child => {
+                            if (child.dataset.mode === 'anomaly') {
+                                return;
+                            }
+                            child.style.background = '#f5f8fb';
+                            child.style.color = '#214764';
+                        });
+
+                        if (anomalyMode) {
+                            anomalyButton.style.background = 'linear-gradient(90deg, rgb(49,130,189), rgb(214,39,40))';
+                            anomalyButton.style.color = '#fff';
+                        } else {
+                            anomalyButton.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
+                            anomalyButton.style.color = '#214764';
+                            if (activeVar) {
+                                const varButtons = Array.from(toggleHost.children).filter(child => child.dataset.mode !== 'anomaly');
+                                const activeButton = varButtons.find(btn => btn.textContent === (legendNameMap[activeVar] ? `${activeVar} - ${legendNameMap[activeVar]}` : activeVar));
+                                if (activeButton) {
+                                    activeButton.style.background = '#214764';
+                                    activeButton.style.color = '#fff';
+                                }
+                            }
+                        }
+
+                        drawTrack();
+                    });
+                    toggleHost.appendChild(anomalyButton);
+                }
             }
         }
 
