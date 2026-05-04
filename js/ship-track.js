@@ -703,13 +703,8 @@ function renderShipTrack(payload) {
                         anomalyMode = false;
                         activeVar = v;
                         Array.from(toggleHost.children).forEach(child => {
-                            if (child.dataset.mode === 'anomaly') {
-                                child.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
-                                child.style.color = '#214764';
-                            } else {
-                                child.style.background = '#f5f8fb';
-                                child.style.color = '#214764';
-                            }
+                            child.style.background = '#f5f8fb';
+                            child.style.color = '#214764';
                         });
                         button.style.background = '#214764';
                         button.style.color = '#fff';
@@ -728,23 +723,20 @@ function renderShipTrack(payload) {
                     anomalyButton.style.borderRadius = '999px';
                     anomalyButton.style.cursor = 'pointer';
                     anomalyButton.style.fontSize = '12px';
-                    anomalyButton.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
+                    anomalyButton.style.background = '#f5f8fb';
                     anomalyButton.style.color = '#214764';
                     anomalyButton.addEventListener('click', () => {
                         anomalyMode = !anomalyMode;
                         Array.from(toggleHost.children).forEach(child => {
-                            if (child.dataset.mode === 'anomaly') {
-                                return;
-                            }
                             child.style.background = '#f5f8fb';
                             child.style.color = '#214764';
                         });
 
                         if (anomalyMode) {
-                            anomalyButton.style.background = 'linear-gradient(90deg, rgb(49,130,189), rgb(214,39,40))';
+                            anomalyButton.style.background = '#214764';
                             anomalyButton.style.color = '#fff';
                         } else {
-                            anomalyButton.style.background = 'linear-gradient(135deg, #f5f8fb, #edf2f7)';
+                            anomalyButton.style.background = '#f5f8fb';
                             anomalyButton.style.color = '#214764';
                             if (activeVar) {
                                 const varButtons = Array.from(toggleHost.children).filter(child => child.dataset.mode !== 'anomaly');
