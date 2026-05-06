@@ -214,7 +214,6 @@ function RenderShipTrackModal()
         ">
       <div style="display:flex; flex-direction:column; gap:4px;">
         <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px;">Ship Track</h2>
-        <span style="font-size:12px; opacity:0.8;">Satellite view of the selected range</span>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <select id="shipTrackBasemapSelect" style="
