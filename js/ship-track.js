@@ -741,13 +741,13 @@ function renderShipTrack(payload) {
                 if (anomalyPairs.length) {
                     anomalySelect = document.createElement('select');
                     anomalySelect.dataset.mode = 'anomaly-select';
-                    anomalySelect.style.border = '1px solid #7c91a4';
+                    anomalySelect.style.border = '1px solid #b9770e';
                     anomalySelect.style.padding = '5px 9px';
                     anomalySelect.style.borderRadius = '999px';
                     anomalySelect.style.cursor = 'pointer';
                     anomalySelect.style.fontSize = '12px';
-                    anomalySelect.style.background = '#f5f8fb';
-                    anomalySelect.style.color = '#214764';
+                    anomalySelect.style.background = '#fff4d6';
+                    anomalySelect.style.color = '#7a4900';
 
                     const placeholderOption = document.createElement('option');
                     placeholderOption.value = '';
