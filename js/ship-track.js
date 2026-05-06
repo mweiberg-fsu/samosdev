@@ -268,6 +268,19 @@ function renderShipTrack(payload) {
 
         let activeVar = valueVars.length ? valueVars[0] : null;
         let anomalyMode = false;
+        const anomalyPairs = [];
+
+        for (let i = 0; i < valueVars.length; i++) {
+            for (let j = i + 1; j < valueVars.length; j++) {
+                anomalyPairs.push({
+                    key: `${valueVars[i]}__${valueVars[j]}`,
+                    left: valueVars[i],
+                    right: valueVars[j]
+                });
+            }
+        }
+
+        let activeAnomalyPair = anomalyPairs.length ? anomalyPairs[0] : null;
 
         const toggleHtml = valueVars.length > 1
             ? `<div id="shipTrackVarToggles" style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px;"></div>`
@@ -531,7 +544,9 @@ function renderShipTrack(payload) {
             let min = null;
             let max = null;
             let maxAbs = null;
-            const anomalyPair = valueVars.length >= 2 ? [valueVars[0], valueVars[1]] : null;
+            const anomalyPair = anomalyMode && activeAnomalyPair
+                ? [activeAnomalyPair.left, activeAnomalyPair.right]
+                : null;
 
             const metricForPoint = (p) => {
                 if (anomalyMode && anomalyPair) {
@@ -649,7 +664,7 @@ function renderShipTrack(payload) {
             });
 
             if (legendColorbar) {
-                if (activeVar && min !== null && max !== null) {
+                if ((activeVar || anomalyPair) && min !== null && max !== null) {
                     if (anomalyMode && anomalyPair && maxAbs !== null) {
                         legendColorbar.innerHTML = `
                             <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Anomaly (${anomalyPair[0]} - ${anomalyPair[1]})</div>
@@ -688,6 +703,8 @@ function renderShipTrack(payload) {
         if (valueVars.length > 1) {
             const toggleHost = container.querySelector('#shipTrackVarToggles');
             if (toggleHost) {
+                const varButtons = [];
+
                 valueVars.forEach(v => {
                     const button = document.createElement('button');
                     button.type = 'button';
@@ -702,55 +719,71 @@ function renderShipTrack(payload) {
                     button.addEventListener('click', () => {
                         anomalyMode = false;
                         activeVar = v;
+                        if (anomalySelect) {
+                            anomalySelect.value = '';
+                        }
                         Array.from(toggleHost.children).forEach(child => {
-                            child.style.background = '#f5f8fb';
-                            child.style.color = '#214764';
+                            if (child.tagName === 'BUTTON') {
+                                child.style.background = '#f5f8fb';
+                                child.style.color = '#214764';
+                            }
                         });
                         button.style.background = '#214764';
                         button.style.color = '#fff';
                         drawTrack();
                     });
                     toggleHost.appendChild(button);
+                    varButtons.push(button);
                 });
 
-                if (valueVars.length >= 2) {
-                    const anomalyButton = document.createElement('button');
-                    anomalyButton.type = 'button';
-                    anomalyButton.dataset.mode = 'anomaly';
-                    anomalyButton.textContent = `Anomaly (${valueVars[0]} - ${valueVars[1]})`;
-                    anomalyButton.style.border = '1px solid #7c91a4';
-                    anomalyButton.style.padding = '5px 9px';
-                    anomalyButton.style.borderRadius = '999px';
-                    anomalyButton.style.cursor = 'pointer';
-                    anomalyButton.style.fontSize = '12px';
-                    anomalyButton.style.background = '#f5f8fb';
-                    anomalyButton.style.color = '#214764';
-                    anomalyButton.addEventListener('click', () => {
-                        anomalyMode = !anomalyMode;
-                        Array.from(toggleHost.children).forEach(child => {
-                            child.style.background = '#f5f8fb';
-                            child.style.color = '#214764';
+                let anomalySelect = null;
+
+                if (anomalyPairs.length) {
+                    anomalySelect = document.createElement('select');
+                    anomalySelect.dataset.mode = 'anomaly-select';
+                    anomalySelect.style.border = '1px solid #7c91a4';
+                    anomalySelect.style.padding = '5px 9px';
+                    anomalySelect.style.borderRadius = '999px';
+                    anomalySelect.style.cursor = 'pointer';
+                    anomalySelect.style.fontSize = '12px';
+                    anomalySelect.style.background = '#f5f8fb';
+                    anomalySelect.style.color = '#214764';
+
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = 'Anomaly...';
+                    anomalySelect.appendChild(placeholderOption);
+
+                    anomalyPairs.forEach(pair => {
+                        const option = document.createElement('option');
+                        option.value = pair.key;
+                        option.textContent = `${pair.left} vs ${pair.right}`;
+                        anomalySelect.appendChild(option);
+                    });
+
+                    anomalySelect.addEventListener('change', () => {
+                        const nextPair = anomalyPairs.find(pair => pair.key === anomalySelect.value) || null;
+                        activeAnomalyPair = nextPair || activeAnomalyPair;
+                        anomalyMode = !!nextPair;
+
+                        varButtons.forEach(button => {
+                            button.style.background = '#f5f8fb';
+                            button.style.color = '#214764';
                         });
 
-                        if (anomalyMode) {
-                            anomalyButton.style.background = '#214764';
-                            anomalyButton.style.color = '#fff';
-                        } else {
-                            anomalyButton.style.background = '#f5f8fb';
-                            anomalyButton.style.color = '#214764';
-                            if (activeVar) {
-                                const varButtons = Array.from(toggleHost.children).filter(child => child.dataset.mode !== 'anomaly');
-                                const activeButton = varButtons.find(btn => btn.textContent === (legendNameMap[activeVar] ? `${activeVar} - ${legendNameMap[activeVar]}` : activeVar));
-                                if (activeButton) {
-                                    activeButton.style.background = '#214764';
-                                    activeButton.style.color = '#fff';
-                                }
+                        if (!anomalyMode && activeVar) {
+                            const activeLabel = legendNameMap[activeVar] ? `${activeVar} - ${legendNameMap[activeVar]}` : activeVar;
+                            const activeButton = varButtons.find(button => button.textContent === activeLabel);
+                            if (activeButton) {
+                                activeButton.style.background = '#214764';
+                                activeButton.style.color = '#fff';
                             }
                         }
 
                         drawTrack();
                     });
-                    toggleHost.appendChild(anomalyButton);
+
+                    toggleHost.appendChild(anomalySelect);
                 }
             }
         }
