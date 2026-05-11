@@ -351,8 +351,8 @@ function renderShipTrack(payload) {
             const point = {
                 time: formatUtcTimestamp(parsedTime),
                 tsMs: parsedTime.getTime(),
-                lat: Math.round(latNum * 100) / 100,
-                lon: Math.round(lonNum * 100) / 100,
+                lat: latNum,
+                lon: lonNum,
                 vars: {}
             };
 
@@ -705,7 +705,8 @@ function renderShipTrack(payload) {
                 L.polyline([[prev.lat, prev.lon], [curr.lat, curr.lon]], {
                     color: segmentColor,
                     weight: 4,
-                    opacity: 0.9
+                    opacity: 0.9,
+                    smoothFactor: 0
                 }).addTo(trackLayer);
             }
 
