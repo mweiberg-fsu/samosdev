@@ -55,6 +55,106 @@ function renderShipTrack(payload) {
         return value;
     };
 
+    const parseUtcTimestamp = (rawTs) => {
+        const str = String(rawTs || '').trim();
+        if (!str) return null;
+
+        const cleanDate = String(date || '').replace(/[^\d]/g, '').slice(0, 8);
+        if (cleanDate.length === 8) {
+            if (/^\d{6}$/.test(str)) {
+                const hh = str.slice(0, 2);
+                const mi = str.slice(2, 4);
+                const ss = str.slice(4, 6);
+                const dt = new Date(`${cleanDate.slice(0, 4)}-${cleanDate.slice(4, 6)}-${cleanDate.slice(6, 8)}T${hh}:${mi}:${ss}Z`);
+                return Number.isNaN(dt.getTime()) ? null : dt;
+            }
+
+            if (/^\d{4}$/.test(str)) {
+                const hh = str.slice(0, 2);
+                const mi = str.slice(2, 4);
+                const dt = new Date(`${cleanDate.slice(0, 4)}-${cleanDate.slice(4, 6)}-${cleanDate.slice(6, 8)}T${hh}:${mi}:00Z`);
+                return Number.isNaN(dt.getTime()) ? null : dt;
+            }
+
+            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+                const parts = str.split(':');
+                const hh = parts[0].padStart(2, '0');
+                const mi = parts[1];
+                const ss = (parts[2] || '00').padStart(2, '0');
+                const dt = new Date(`${cleanDate.slice(0, 4)}-${cleanDate.slice(4, 6)}-${cleanDate.slice(6, 8)}T${hh}:${mi}:${ss}Z`);
+                return Number.isNaN(dt.getTime()) ? null : dt;
+            }
+        }
+
+        const normalized = str.includes('T') ? str : str.replace(' ', 'T');
+        const withZone = /Z$|[+-]\d\d:?\d\d$/.test(normalized) ? normalized : `${normalized}Z`;
+        const dt = new Date(withZone);
+        return Number.isNaN(dt.getTime()) ? null : dt;
+    };
+
+    const formatUtcTimestamp = (dateObj) => {
+        const yyyy = dateObj.getUTCFullYear();
+        const mm = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+        const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+        const mi = String(dateObj.getUTCMinutes()).padStart(2, '0');
+        const ss = String(dateObj.getUTCSeconds()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+    };
+
+    const resamplePointsToOneMinute = (sourcePoints, varsList) => {
+        if (!Array.isArray(sourcePoints) || sourcePoints.length <= 1) {
+            return sourcePoints || [];
+        }
+
+        const sorted = sourcePoints.slice().sort((a, b) => a.tsMs - b.tsMs);
+        const output = [];
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const start = sorted[i];
+            const end = sorted[i + 1];
+
+            if (!output.length || output[output.length - 1].tsMs !== start.tsMs) {
+                output.push({ ...start, vars: { ...start.vars } });
+            }
+
+            const gapMs = end.tsMs - start.tsMs;
+            if (gapMs <= 60000) {
+                continue;
+            }
+
+            for (let t = start.tsMs + 60000; t < end.tsMs; t += 60000) {
+                const ratio = (t - start.tsMs) / gapMs;
+                const interpVars = {};
+
+                varsList.forEach(v => {
+                    const sv = start.vars[v];
+                    const ev = end.vars[v];
+                    interpVars[v] = (sv === null || ev === null)
+                        ? null
+                        : sv + (ev - sv) * ratio;
+                });
+
+                const interpDate = new Date(t);
+                output.push({
+                    time: formatUtcTimestamp(interpDate),
+                    tsMs: t,
+                    lat: start.lat + (end.lat - start.lat) * ratio,
+                    lon: start.lon + (end.lon - start.lon) * ratio,
+                    vars: interpVars,
+                    isInterpolated: true
+                });
+            }
+        }
+
+        const last = sorted[sorted.length - 1];
+        if (!output.length || output[output.length - 1].tsMs !== last.tsMs) {
+            output.push({ ...last, vars: { ...last.vars } });
+        }
+
+        return output;
+    };
+
     if (!document.getElementById('shipTrackTooltipStyle')) {
         const style = document.createElement('style');
         style.id = 'shipTrackTooltipStyle';
@@ -235,17 +335,22 @@ function renderShipTrack(payload) {
         }
 
         const lonMap = new Map(Object.entries(lonData));
-        const points = [];
+        const rawPoints = [];
         Object.entries(latData).forEach(([time, rawLat]) => {
             const rawLon = lonMap.has(time) ? lonMap.get(time) : null;
             const latNum = parseNumeric(rawLat);
             const lonNum = parseNumeric(rawLon);
+            const parsedTime = parseUtcTimestamp(time);
             if (latNum === null || lonNum === null) {
+                return;
+            }
+            if (!parsedTime) {
                 return;
             }
 
             const point = {
-                time,
+                time: formatUtcTimestamp(parsedTime),
+                tsMs: parsedTime.getTime(),
                 lat: Math.round(latNum * 100) / 100,
                 lon: Math.round(lonNum * 100) / 100,
                 vars: {}
@@ -258,8 +363,10 @@ function renderShipTrack(payload) {
                     : null;
             });
 
-            points.push(point);
+            rawPoints.push(point);
         });
+
+        const points = resamplePointsToOneMinute(rawPoints, valueVars);
 
         if (!points.length) {
             container.innerHTML = '<p style="color:#e74c3c; text-align:center; margin:16px 0;">No valid points in the selected time range.</p>';
