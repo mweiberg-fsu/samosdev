@@ -155,6 +155,31 @@ function renderShipTrack(payload) {
         return output;
     };
 
+    const filterPointsByInterval = (sourcePoints, intervalMinutes) => {
+        if (!Array.isArray(sourcePoints) || !sourcePoints.length) {
+            return [];
+        }
+
+        const minutes = Number(intervalMinutes);
+        if (!Number.isFinite(minutes) || minutes <= 1) {
+            return sourcePoints.slice();
+        }
+
+        const stepMs = minutes * 60000;
+        const startTs = sourcePoints[0].tsMs;
+        const filtered = sourcePoints.filter((point, idx) => {
+            if (idx === 0) return true;
+            return ((point.tsMs - startTs) % stepMs) === 0;
+        });
+
+        const lastPoint = sourcePoints[sourcePoints.length - 1];
+        if (!filtered.length || filtered[filtered.length - 1].tsMs !== lastPoint.tsMs) {
+            filtered.push(lastPoint);
+        }
+
+        return filtered;
+    };
+
     if (!document.getElementById('shipTrackTooltipStyle')) {
         const style = document.createElement('style');
         style.id = 'shipTrackTooltipStyle';
@@ -366,12 +391,15 @@ function renderShipTrack(payload) {
             rawPoints.push(point);
         });
 
-        const points = resamplePointsToOneMinute(rawPoints, valueVars);
+        const allPoints = resamplePointsToOneMinute(rawPoints, valueVars);
 
-        if (!points.length) {
+        if (!allPoints.length) {
             container.innerHTML = '<p style="color:#e74c3c; text-align:center; margin:16px 0;">No valid points in the selected time range.</p>';
             return;
         }
+
+        let activeTimeFilterMinutes = 1;
+        let points = allPoints.slice();
 
         let activeVar = valueVars.length ? valueVars[0] : null;
         let anomalyMode = false;
@@ -405,7 +433,7 @@ function renderShipTrack(payload) {
                         Ship Track - ${safeShip} (Order ${safeOrder} - ${safeDate})
                     </h3>
                     <div style="text-align:center; color:#5b6b79; font-size:12px;">
-                        ${usedLatVar}/${usedLonVar} | ${hs}:00 - ${he}:59 UTC | ${points.length} points
+                        ${usedLatVar}/${usedLonVar} | ${hs}:00 - ${he}:59 UTC | <span id="shipTrackPointCount">${points.length}</span> points
                     </div>
                     ${toggleHtml}
                 </div>
@@ -440,10 +468,11 @@ function renderShipTrack(payload) {
                 </div>
             </div>`;
 
-        const map = L.map('shipTrackMap', { preferCanvas: true }).fitBounds(points.map(p => [p.lat, p.lon]));
+        const map = L.map('shipTrackMap', { preferCanvas: true }).fitBounds(allPoints.map(p => [p.lat, p.lon]));
         setTimeout(() => map.invalidateSize(), 0);
 
         const basemapSelect = document.getElementById('shipTrackBasemapSelect');
+        const timeFilterSelect = document.getElementById('shipTrackTimeFilterSelect');
         const gradientSelect = document.getElementById('shipTrackGradientSelect');
         let activeBaseLayer = null;
         let activeGradient = (gradientSelect && gradientSelect.value) ? gradientSelect.value : 'plasma';
@@ -509,6 +538,8 @@ function renderShipTrack(payload) {
 
         const trackLayer = L.layerGroup().addTo(map);
         const pointInteractionLayer = L.layerGroup().addTo(map);
+        const endpointLayer = L.layerGroup().addTo(map);
+        const pointCountEl = document.getElementById('shipTrackPointCount');
         let activePopupMarker = null;
         const hoverTooltip = L.tooltip({
             sticky: true,
@@ -516,25 +547,6 @@ function renderShipTrack(payload) {
             opacity: 0.95,
             className: 'ship-track-tooltip'
         });
-
-        L.circleMarker([points[0].lat, points[0].lon], {
-            radius: 7,
-            fillColor: '#2ecc71',
-            color: '#000',
-            weight: 1.5,
-            opacity: 1,
-            fillOpacity: 0.9
-        }).addTo(map).bindPopup(`<b>Start</b><br>${points[0].time}`);
-
-        const lastPoint = points[points.length - 1];
-        L.circleMarker([lastPoint.lat, lastPoint.lon], {
-            radius: 7,
-            fillColor: '#e74c3c',
-            color: '#000',
-            weight: 1.5,
-            opacity: 1,
-            fillOpacity: 0.9
-        }).addTo(map).bindPopup(`<b>End</b><br>${lastPoint.time}`);
 
         const legend = L.control({ position: 'bottomright' });
         legend.onAdd = () => {
@@ -559,6 +571,17 @@ function renderShipTrack(payload) {
         const tableWrap = container.querySelector('#shipTrackTableWrap');
         const tableToggle = container.querySelector('#shipTrackTableToggle');
         let isTableExpanded = false;
+
+        const updatePointCount = () => {
+            if (pointCountEl) {
+                pointCountEl.textContent = String(points.length);
+            }
+        };
+
+        const applyTimeFilter = () => {
+            points = filterPointsByInterval(allPoints, activeTimeFilterMinutes);
+            updatePointCount();
+        };
 
         const setTableExpanded = (expanded) => {
             isTableExpanded = expanded;
@@ -643,6 +666,30 @@ function renderShipTrack(payload) {
         const drawTrack = () => {
             trackLayer.clearLayers();
             pointInteractionLayer.clearLayers();
+            endpointLayer.clearLayers();
+
+            if (!points.length) {
+                return;
+            }
+
+            L.circleMarker([points[0].lat, points[0].lon], {
+                radius: 7,
+                fillColor: '#2ecc71',
+                color: '#000',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(endpointLayer).bindPopup(`<b>Start</b><br>${points[0].time}`);
+
+            const lastPoint = points[points.length - 1];
+            L.circleMarker([lastPoint.lat, lastPoint.lon], {
+                radius: 7,
+                fillColor: '#e74c3c',
+                color: '#000',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(endpointLayer).bindPopup(`<b>End</b><br>${lastPoint.time}`);
 
             if (points.length < 2) {
                 return;
@@ -775,7 +822,7 @@ function renderShipTrack(payload) {
                 if ((activeVar || anomalyPair) && min !== null && max !== null) {
                     if (anomalyMode && anomalyPair && maxAbs !== null) {
                         legendColorbar.innerHTML = `
-                            <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Anomaly (${anomalyPair[0]} - ${anomalyPair[1]})</div>
+                            <div style="font-size:11px; color:#2f4356; margin-bottom:3px;">Difference (${anomalyPair[0]} - ${anomalyPair[1]})</div>
                             <div style="height:10px; border-radius:999px; border:1px solid rgba(0,0,0,0.25); background:${anomalyGradientCss()};"></div>
                             <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#2f4356;">
                                 <span>${(-maxAbs).toFixed(3)}</span>
@@ -804,6 +851,18 @@ function renderShipTrack(payload) {
             activeGradient = gradientSelect.value;
             gradientSelect.onchange = () => {
                 activeGradient = gradientSelect.value || 'plasma';
+                drawTrack();
+            };
+        }
+
+        if (timeFilterSelect) {
+            const parsedDefault = parseInt(timeFilterSelect.value, 10);
+            activeTimeFilterMinutes = Number.isFinite(parsedDefault) ? parsedDefault : 1;
+            timeFilterSelect.onchange = () => {
+                const parsed = parseInt(timeFilterSelect.value, 10);
+                activeTimeFilterMinutes = Number.isFinite(parsed) ? parsed : 1;
+                applyTimeFilter();
+                renderTable();
                 drawTrack();
             };
         }
@@ -859,7 +918,7 @@ function renderShipTrack(payload) {
 
                     const placeholderOption = document.createElement('option');
                     placeholderOption.value = '';
-                    placeholderOption.textContent = 'Anomaly...';
+                    placeholderOption.textContent = 'Difference...';
                     anomalySelect.appendChild(placeholderOption);
 
                     anomalyPairs.forEach(pair => {
@@ -896,6 +955,7 @@ function renderShipTrack(payload) {
             }
         }
 
+        applyTimeFilter();
         renderTable();
         setTableExpanded(false);
         drawTrack();

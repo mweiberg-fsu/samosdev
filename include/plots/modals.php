@@ -234,6 +234,24 @@ function RenderShipTrackModal()
           <option value="opentopo">OpenTopoMap</option>
           <option value="carto-dark">Carto Dark Matter</option>
         </select>
+        <select id="shipTrackTimeFilterSelect" style="
+          background:linear-gradient(135deg, #27ae60, #1f9d55);
+          color:#ffffff;
+          border:1px solid #188a48;
+          padding:8px 12px;
+          border-radius:6px;
+          font-size:12px;
+          font-weight:700;
+          min-width:165px;
+          cursor:pointer;
+          box-shadow:0 2px 6px rgba(0,0,0,0.2);
+        ">
+          <option value="1" selected>Timestamps: 1 min</option>
+          <option value="5">Timestamps: 5 min</option>
+          <option value="10">Timestamps: 10 min</option>
+          <option value="30">Timestamps: 30 min</option>
+          <option value="60">Timestamps: 1 hour</option>
+        </select>
         <select id="shipTrackGradientSelect" style="
             background:linear-gradient(135deg, #27ae60, #1f9d55);
             color:#ffffff;
