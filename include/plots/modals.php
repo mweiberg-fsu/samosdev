@@ -236,6 +236,7 @@ function RenderShipTrackModal()
           <option value="10">Timestamps: 10 min</option>
           <option value="30">Timestamps: 30 min</option>
           <option value="60">Timestamps: 1 hour</option>
+          <option value="0">Timestamps: No timesteps</option>
         </select>
         <select id="shipTrackBasemapSelect" style="
           background:linear-gradient(135deg, #27ae60, #1f9d55);
