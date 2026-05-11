@@ -399,6 +399,7 @@ function renderShipTrack(payload) {
         }
 
         let activeTimeFilterMinutes = 1;
+        let showTimesteps = true;
         let points = allPoints.slice();
 
         let activeVar = valueVars.length ? valueVars[0] : null;
@@ -579,7 +580,13 @@ function renderShipTrack(payload) {
         };
 
         const applyTimeFilter = () => {
-            points = filterPointsByInterval(allPoints, activeTimeFilterMinutes);
+            if (activeTimeFilterMinutes === 0) {
+                points = allPoints.slice();
+                showTimesteps = false;
+            } else {
+                points = filterPointsByInterval(allPoints, activeTimeFilterMinutes);
+                showTimesteps = true;
+            }
             updatePointCount();
         };
 
@@ -757,7 +764,8 @@ function renderShipTrack(payload) {
                 }).addTo(trackLayer);
             }
 
-            points.forEach(point => {
+            if (showTimesteps) {
+                points.forEach(point => {
                 const tooltipHtml = buildPointDetailsHtml(point);
                 let pointColor = '#f39c12';
                 const pointValue = metricForPoint(point);
@@ -816,7 +824,8 @@ function renderShipTrack(payload) {
                         activePopupMarker = null;
                     }
                 });
-            });
+                });
+            }
 
             if (legendColorbar) {
                 if ((activeVar || anomalyPair) && min !== null && max !== null) {
