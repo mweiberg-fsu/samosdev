@@ -839,9 +839,21 @@
             return Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6 && Math.abs(a.k - b.k) < 1e-6;
         };
 
-        const toTransformState = (transform) => ({ x: transform.x, y: transform.y, k: transform.k });
+        const toTransformState = (transform) => ({
+            x: transform.x,
+            y: transform.y,
+            k: transform.k,
+            yDomains: vars.reduce((acc, v) => { acc[v] = yScales[v].domain().slice(); return acc; }, {})
+        });
 
-        const fromTransformState = (state) => d3.zoomIdentity.translate(state.x, state.y).scale(state.k);
+        const fromTransformState = (state) => {
+            if (state.yDomains) {
+                vars.forEach(v => {
+                    if (state.yDomains[v]) yScales[v].domain(state.yDomains[v]);
+                });
+            }
+            return d3.zoomIdentity.translate(state.x, state.y).scale(state.k);
+        };
 
         const pushCurrentTransformToHistory = () => {
             const currentState = toTransformState(latestZoomTransform);
@@ -927,38 +939,45 @@
                 return;
             }
 
-            // Compute base-space bounds for the selected rectangle using the primary Y scale.
-            // d3.zoom uses a uniform scale, so we fit the selected box while preserving aspect ratio.
+            // Compute X extent in base-space and fit X exactly to the selected box width.
+            // Each Y scale is independently rebased so that transform.rescaleY(yScales[v])
+            // with k=fitKX and ty=0 maps exactly the selected box Y range to the full plot
+            // height — regardless of outliers that would otherwise distort the base-space span.
             const x0Date = currentX.invert(x0_plot);
             const x1Date = currentX.invert(x1_plot);
             const baseX0 = baseX(x0Date);
             const baseX1 = baseX(x1Date);
-            const primaryVar = vars.find(v => selectedVars.has(v)) || vars[0];
-            const primaryBase = yScales[primaryVar];
-            const y0Val = currentYScales[primaryVar].invert(y0_plot);
-            const y1Val = currentYScales[primaryVar].invert(y1_plot);
-            const baseY0 = primaryBase(y0Val);
-            const baseY1 = primaryBase(y1Val);
 
-            const baseXMin = Math.min(baseX0, baseX1);
-            const baseXMax = Math.max(baseX0, baseX1);
-            const baseYMin = Math.min(baseY0, baseY1);
-            const baseYMax = Math.max(baseY0, baseY1);
-            const baseDx = baseXMax - baseXMin;
-            const baseDy = baseYMax - baseYMin;
-
-            if (baseDx <= 0 || baseDy <= 0) return;
+            const baseDx = Math.abs(baseX1 - baseX0);
+            if (baseDx <= 0) return;
 
             const fitKX = width / baseDx;
-            const fitKY = height / baseDy;
-            const newK = Math.min(fitKX, fitKY);
+            const baseXMin = Math.min(baseX0, baseX1);
+            const newTx = -fitKX * baseXMin;
 
-            const newTx = -newK * baseXMin + (width - newK * baseDx) / 2;
-            const newTy = -newK * baseYMin + (height - newK * baseDy) / 2;
-
+            // Save state (including current yScales domains) before mutating anything.
             pushCurrentTransformToHistory();
 
-            const newTransform = d3.zoomIdentity.translate(newTx, newTy).scale(newK);
+            // Rebase each Y scale so that rescaleY(yScales[v]) with k=fitKX, ty=0
+            // produces exactly domain [y0Val_v, y1Val_v] over the full plot height.
+            //
+            // Derivation for a linear scale with range R = [R0, R1]:
+            //   rescaleY at k, ty=0: at screen y → data = yScales.invert(y/k)
+            //   We need: invert(0)       = y0Val  (top of box → top of plot)
+            //            invert(height/k) = y1Val  (bottom of box → bottom of plot)
+            //   Solving: D0 = y0Val + (y1Val−y0Val)·R0·k/height
+            //            D1 = D0 + (y1Val−y0Val)·(R1−R0)·k/height
+            vars.forEach(v => {
+                const y0Val_v = currentYScales[v].invert(y0_plot);
+                const y1Val_v = currentYScales[v].invert(y1_plot);
+                const R = yScales[v].range();
+                const dy = y1Val_v - y0Val_v;
+                const D0 = y0Val_v + dy * R[0] * fitKX / height;
+                const D1 = D0 + dy * (R[1] - R[0]) * fitKX / height;
+                yScales[v].domain([D0, D1]);
+            });
+
+            const newTransform = d3.zoomIdentity.translate(newTx, 0).scale(fitKX);
             svg.transition().duration(250).call(zoom.transform, newTransform);
         };
 
