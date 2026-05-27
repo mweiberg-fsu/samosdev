@@ -843,10 +843,14 @@
             x: transform.x,
             y: transform.y,
             k: transform.k,
+            xDomain: baseX.domain().slice(),
             yDomains: vars.reduce((acc, v) => { acc[v] = yScales[v].domain().slice(); return acc; }, {})
         });
 
         const fromTransformState = (state) => {
+            if (state.xDomain) {
+                baseX.domain(state.xDomain);
+            }
             if (state.yDomains) {
                 vars.forEach(v => {
                     if (state.yDomains[v]) yScales[v].domain(state.yDomains[v]);
@@ -867,7 +871,9 @@
             if (!boxZoomHistory.length) return;
             const prevState = boxZoomHistory.pop();
             svg.interrupt();
-            applyZoomTransform(fromTransformState(prevState));
+            const prevTransform = fromTransformState(prevState);
+            svg.node().__zoom = prevTransform;
+            applyZoomTransform(prevTransform);
         };
 
         // === SHIFT+DRAG BOUNDING BOX ZOOM ===
@@ -940,46 +946,37 @@
                 return;
             }
 
-            // Compute X extent in base-space and fit X exactly to the selected box width.
-            // Each Y scale is independently rebased so that transform.rescaleY(yScales[v])
-            // with k=fitKX and ty=0 maps exactly the selected box Y range to the full plot
-            // height — regardless of outliers that would otherwise distort the base-space span.
             const x0Date = currentX.invert(x0_plot);
             const x1Date = currentX.invert(x1_plot);
-            const baseX0 = baseX(x0Date);
-            const baseX1 = baseX(x1Date);
+            if (x0Date >= x1Date) return;
 
-            const baseDx = Math.abs(baseX1 - baseX0);
-            if (baseDx <= 0) return;
-
-            const fitKX = width / baseDx;
-            const baseXMin = Math.min(baseX0, baseX1);
-            const newTx = -fitKX * baseXMin;
-
-            // Save state (including current yScales domains) before mutating anything.
+            // Save state before mutating
             pushCurrentTransformToHistory();
 
-            // Rebase each Y scale so that rescaleY(yScales[v]) with k=fitKX, ty=0
-            // produces exactly domain [y0Val_v, y1Val_v] over the full plot height.
-            //
-            // Derivation for a linear scale with range R = [R0, R1]:
-            //   rescaleY at k, ty=0: at screen y → data = yScales.invert(y/k)
-            //   We need: invert(0)       = y0Val  (top of box → top of plot)
-            //            invert(height/k) = y1Val  (bottom of box → bottom of plot)
-            //   Solving: D0 = y0Val + (y1Val−y0Val)·R0·k/height
-            //            D1 = D0 + (y1Val−y0Val)·(R1−R0)·k/height
+            // Compute desired Y domains directly from the current scaled view.
+            // Y range is [height, 0]: invert(y0_plot) gives the data value at the top of
+            // the box (higher data value) and invert(y1_plot) gives the bottom (lower value).
+            const newYDomains = {};
             vars.forEach(v => {
-                const y0Val_v = currentYScales[v].invert(y0_plot);
-                const y1Val_v = currentYScales[v].invert(y1_plot);
-                const R = yScales[v].range();
-                const dy = y1Val_v - y0Val_v;
-                const D0 = y0Val_v + dy * R[0] * fitKX / height;
-                const D1 = D0 + dy * (R[1] - R[0]) * fitKX / height;
-                yScales[v].domain([D0, D1]);
+                const topVal    = currentYScales[v].invert(y0_plot);
+                const bottomVal = currentYScales[v].invert(y1_plot);
+                newYDomains[v] = [bottomVal, topVal];
             });
 
-            const newTransform = d3.zoomIdentity.translate(newTx, 0).scale(fitKX);
-            svg.transition().duration(250).call(zoom.transform, newTransform);
+            // Rebase X and Y to the selection and reset the D3 zoom transform to identity.
+            // This is exact regardless of scaleExtent limits or outlier-stretched scales.
+            baseX.domain([x0Date, x1Date]);
+            vars.forEach(v => yScales[v].domain(newYDomains[v]));
+
+            latestZoomTransform = d3.zoomIdentity;
+            currentX = baseX.copy();
+            vars.forEach(v => { currentYScales[v] = yScales[v].copy(); });
+            svg.node().__zoom = d3.zoomIdentity;
+
+            applyManualYLimits();
+            updateXAxis(currentX);
+            updateYAxes();
+            updateChart();
         };
 
         svg.on('mouseup.zoomBrush', finishBrush);
