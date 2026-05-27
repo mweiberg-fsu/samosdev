@@ -866,7 +866,8 @@
         const undoBoxZoomStep = () => {
             if (!boxZoomHistory.length) return;
             const prevState = boxZoomHistory.pop();
-            svg.transition().duration(220).call(zoom.transform, fromTransformState(prevState));
+            svg.interrupt();
+            applyZoomTransform(fromTransformState(prevState));
         };
 
         // === SHIFT+DRAG BOUNDING BOX ZOOM ===
