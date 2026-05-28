@@ -998,9 +998,7 @@
         // Cancel/finish brush if mouse is released outside SVG
         const onWindowMouseUp = (event) => {
             if (!brushOrigin) return;
-            brushRect.style('display', 'none');
-            svg.style('cursor', null);
-            brushOrigin = null;
+            finishBrush(event);
         };
         window.addEventListener('mouseup', onWindowMouseUp);
 
@@ -1011,11 +1009,6 @@
         const onKeyUp = (e) => {
             if (e.key === 'Shift') {
                 if (!brushOrigin) svg.style('cursor', null);
-                else {
-                    brushRect.style('display', 'none');
-                    brushOrigin = null;
-                    svg.style('cursor', null);
-                }
             }
         };
         document.addEventListener('keydown', onKeyDown);
