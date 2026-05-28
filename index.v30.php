@@ -16,6 +16,7 @@
 include_once 'include/global.inc.php';
 
 // Include helper functions and plot modules
+// new comment
 require_once 'include/helpers.php';
 require_once 'include/plots/timeseries_plot.php';
 require_once 'include/plots/combined_plot.php';
