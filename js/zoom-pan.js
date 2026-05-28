@@ -1219,7 +1219,7 @@
             if (!outlierBtn) return;
             const outliersExcluded = zoomOutlierState[zoomStateKey] === true;
             outlierBtn.textContent = outliersExcluded ? 'Show Outliers' : 'Exclude Outliers';
-            outlierBtn.style.background = outliersExcluded ? '#16a085' : '#2980b9';
+            outlierBtn.style.background = outliersExcluded ? '#6c3483' : '#8e44ad';
         };
 
         const applyManualYInputsAndRefresh = () => {
