@@ -725,6 +725,11 @@
 
         updateXAxis(baseX);
 
+        // Snapshot initial domains for reset
+        const initialXDomain = baseX.domain().slice();
+        const initialYDomains = {};
+        vars.forEach(v => { initialYDomains[v] = yScales[v].domain().slice(); });
+
         // Zoom state
         let currentX = baseX.copy();
         const yLimitInputsState = zoomYLimitsState[zoomStateKey] || { lower: '', upper: '' };
@@ -824,7 +829,7 @@
 
         const zoom = d3.zoom()
             .scaleExtent([1, 50])
-            .filter(event => !event.shiftKey)
+            .filter(event => !event.shiftKey && !event.metaKey)
             .on('zoom', (event) => {
                 pendingZoomTransform = event.transform;
                 scheduleZoomRender();
@@ -836,7 +841,11 @@
 
         const isSameTransformState = (a, b) => {
             if (!a || !b) return false;
-            return Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6 && Math.abs(a.k - b.k) < 1e-6;
+            if (Math.abs(a.x - b.x) > 1e-6 || Math.abs(a.y - b.y) > 1e-6 || Math.abs(a.k - b.k) > 1e-6) return false;
+            if (a.xDomain && b.xDomain) {
+                if (Math.abs(a.xDomain[0] - b.xDomain[0]) > 1 || Math.abs(a.xDomain[1] - b.xDomain[1]) > 1) return false;
+            }
+            return true;
         };
 
         const toTransformState = (transform) => ({
@@ -942,7 +951,6 @@
             brushOrigin = null;
 
             if ((x1_plot - x0_plot) < 5 || (y1_plot - y0_plot) < 5) {
-                undoBoxZoomStep();
                 return;
             }
 
@@ -980,6 +988,12 @@
         };
 
         svg.on('mouseup.zoomBrush', finishBrush);
+
+        svg.on('click.zoomUndo', function(event) {
+            if (!event.metaKey) return;
+            event.preventDefault();
+            undoBoxZoomStep();
+        });
 
         // Cancel/finish brush if mouse is released outside SVG
         const onWindowMouseUp = (event) => {
@@ -1189,7 +1203,15 @@
                     yUpperInput.value = '';
                     yUpperInput.style.borderColor = '#d0d8e4';
                 }
-                svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+                baseX.domain(initialXDomain);
+                vars.forEach(v => yScales[v].domain(initialYDomains[v]));
+                latestZoomTransform = d3.zoomIdentity;
+                currentX = baseX.copy();
+                vars.forEach(v => { currentYScales[v] = yScales[v].copy(); });
+                svg.node().__zoom = d3.zoomIdentity;
+                updateXAxis(currentX);
+                updateYAxes();
+                updateChart();
             };
         }
 
