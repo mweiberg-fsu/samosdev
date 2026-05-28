@@ -309,6 +309,16 @@
 
         const initialYDomainsByUnit = {};
         const outlierYDomainsByUnit = {};
+        const quantileSorted = (sortedValues, p) => {
+            if (!sortedValues.length) return NaN;
+            if (sortedValues.length === 1) return sortedValues[0];
+            const index = (sortedValues.length - 1) * p;
+            const lowerIndex = Math.floor(index);
+            const upperIndex = Math.ceil(index);
+            if (lowerIndex === upperIndex) return sortedValues[lowerIndex];
+            const weight = index - lowerIndex;
+            return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight;
+        };
         const computeOutlierDomain = (values, fallbackDomain) => {
             const sortedValues = values
                 .filter(value => Number.isFinite(value))
@@ -318,8 +328,8 @@
                 return fallbackDomain.slice();
             }
 
-            const q1 = d3.quantileSorted(sortedValues, 0.25);
-            const q3 = d3.quantileSorted(sortedValues, 0.75);
+            const q1 = quantileSorted(sortedValues, 0.25);
+            const q3 = quantileSorted(sortedValues, 0.75);
             if (!Number.isFinite(q1) || !Number.isFinite(q3)) {
                 return fallbackDomain.slice();
             }
