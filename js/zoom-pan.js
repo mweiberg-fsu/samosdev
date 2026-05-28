@@ -7,6 +7,7 @@
     const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
     const zoomYLimitsState = global.__zoomYLimitsState || (global.__zoomYLimitsState = {});
     const zoomAxisSwapState = global.__zoomAxisSwapState || (global.__zoomAxisSwapState = {});
+    const zoomOutlierState = global.__zoomOutlierState || (global.__zoomOutlierState = {});
 
     // Fix UTF-8 encoding issues (e.g., "Â°" -> "°")
     function fixEncoding(str) {
@@ -104,6 +105,9 @@
         }
         if (typeof zoomAxisSwapState[zoomStateKey] === 'undefined') {
             zoomAxisSwapState[zoomStateKey] = false;
+        }
+        if (typeof zoomOutlierState[zoomStateKey] === 'undefined') {
+            zoomOutlierState[zoomStateKey] = false;
         }
 
         // Delay chart rendering to ensure layout is complete
@@ -301,6 +305,66 @@
             }
 
             varsInGroup.forEach(v => yScales[v] = scale);
+        });
+
+        const initialYDomainsByUnit = {};
+        const outlierYDomainsByUnit = {};
+        const computeOutlierDomain = (values, fallbackDomain) => {
+            const sortedValues = values
+                .filter(value => Number.isFinite(value))
+                .sort((a, b) => a - b);
+
+            if (sortedValues.length < 4) {
+                return fallbackDomain.slice();
+            }
+
+            const q1 = d3.quantileSorted(sortedValues, 0.25);
+            const q3 = d3.quantileSorted(sortedValues, 0.75);
+            if (!Number.isFinite(q1) || !Number.isFinite(q3)) {
+                return fallbackDomain.slice();
+            }
+
+            const iqr = q3 - q1;
+            if (!(iqr > 0)) {
+                return fallbackDomain.slice();
+            }
+
+            const lowerFence = q1 - (1.5 * iqr);
+            const upperFence = q3 + (1.5 * iqr);
+            const inlierValues = sortedValues.filter(value => value >= lowerFence && value <= upperFence);
+
+            if (!inlierValues.length) {
+                return fallbackDomain.slice();
+            }
+
+            const inlierMin = d3.min(inlierValues);
+            const inlierMax = d3.max(inlierValues);
+            if (!Number.isFinite(inlierMin) || !Number.isFinite(inlierMax)) {
+                return fallbackDomain.slice();
+            }
+
+            if (inlierMin === inlierMax) {
+                const pad = Math.abs(inlierMin) * 0.05 || 1;
+                return [inlierMin - pad, inlierMax + pad];
+            }
+
+            const padding = (inlierMax - inlierMin) * 0.15;
+            return [inlierMin - padding, inlierMax + padding];
+        };
+
+        uniqueUnits.forEach(unit => {
+            const varsInGroup = unitGroups[unit];
+            const scale = yScales[varsInGroup[0]];
+            const baseDomain = scale.domain().slice();
+            const isWindDir = varsInGroup.every(v => windDirectionVars.includes(v));
+            initialYDomainsByUnit[unit] = baseDomain;
+
+            if (isWindDir) {
+                outlierYDomainsByUnit[unit] = baseDomain.slice();
+            } else {
+                const values = varsInGroup.flatMap(v => (processedData[v] || []).map(d => d.value));
+                outlierYDomainsByUnit[unit] = computeOutlierDomain(values, baseDomain);
+            }
         });
 
         // SVG dimensions will be container size + margins
@@ -727,8 +791,16 @@
 
         // Snapshot initial domains for reset
         const initialXDomain = baseX.domain().slice();
-        const initialYDomains = {};
-        vars.forEach(v => { initialYDomains[v] = yScales[v].domain().slice(); });
+        const applyBaseYDomains = (useOutliers) => {
+            uniqueUnits.forEach(unit => {
+                const varsInGroup = unitGroups[unit];
+                const scale = yScales[varsInGroup[0]];
+                const domain = useOutliers ? outlierYDomainsByUnit[unit] : initialYDomainsByUnit[unit];
+                scale.domain(domain.slice());
+            });
+        };
+
+        applyBaseYDomains(zoomOutlierState[zoomStateKey] === true);
 
         // Zoom state
         let currentX = baseX.copy();
@@ -1126,10 +1198,18 @@
         const yUpperInput = document.getElementById('zoomYUpperInput');
         const yLowerInput = document.getElementById('zoomYLowerInput');
         const flipAxesBtn = document.getElementById('zoomFlipAxesBtn');
+        const outlierBtn = document.getElementById('zoomExcludeOutliersBtn');
 
         const updateFlipAxesButtonText = () => {
             if (!flipAxesBtn) return;
             flipAxesBtn.textContent = areAxesFlipped ? 'Unflip Axes' : 'Flip Axes';
+        };
+
+        const updateOutlierButtonText = () => {
+            if (!outlierBtn) return;
+            const outliersExcluded = zoomOutlierState[zoomStateKey] === true;
+            outlierBtn.textContent = outliersExcluded ? 'Show Outliers' : 'Exclude Outliers';
+            outlierBtn.style.background = outliersExcluded ? '#16a085' : '#2980b9';
         };
 
         const applyManualYInputsAndRefresh = () => {
@@ -1180,6 +1260,16 @@
             };
         }
 
+        if (outlierBtn) {
+            updateOutlierButtonText();
+            outlierBtn.onclick = () => {
+                zoomOutlierState[zoomStateKey] = !(zoomOutlierState[zoomStateKey] === true);
+                applyBaseYDomains(zoomOutlierState[zoomStateKey]);
+                updateOutlierButtonText();
+                applyZoomTransform(latestZoomTransform);
+            };
+        }
+
         // Reset button
         const resetBtn = document.getElementById('resetZoomBtn');
         if (resetBtn) {
@@ -1197,7 +1287,7 @@
                     yUpperInput.style.borderColor = '#d0d8e4';
                 }
                 baseX.domain(initialXDomain);
-                vars.forEach(v => yScales[v].domain(initialYDomains[v]));
+                applyBaseYDomains(zoomOutlierState[zoomStateKey] === true);
                 latestZoomTransform = d3.zoomIdentity;
                 currentX = baseX.copy();
                 vars.forEach(v => { currentYScales[v] = yScales[v].copy(); });
