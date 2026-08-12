@@ -15,6 +15,23 @@
         return str.replace(/Â°/g, '°').replace(/Â/g, '');
     }
 
+    // Force the x-axis to span the requested time range (default full day) rather than
+    // wherever the actual data happens to start/end, so plots line up across variable groups.
+    function computeDayDomain(date, hs, he, allValidPoints, parseTime) {
+        const dateDigits = String(date || '').replace(/\D/g, '');
+        if (dateDigits.length >= 8) {
+            const y = dateDigits.slice(0, 4);
+            const m = dateDigits.slice(4, 6);
+            const d = dateDigits.slice(6, 8);
+            const startStr = `${y}-${m}-${d} ${hs || '00:00'}:00`;
+            const endStr = `${y}-${m}-${d} ${he || '23:59'}:59`;
+            const start = parseTime(startStr);
+            const end = parseTime(endStr);
+            if (start && end) return [start, end];
+        }
+        return d3.extent(allValidPoints, d => d.dateObj);
+    }
+
     function formatCsvValue(rawValue, debugMeta) {
         if (rawValue == null || rawValue === '') return '';
 
@@ -278,7 +295,7 @@
 
         // Base X scale
         const baseX = d3.scaleUtc()
-            .domain(d3.extent(allValidPoints, d => d.dateObj))
+            .domain(computeDayDomain(date, hs, he, allValidPoints, parseTime))
             .range([0, width]);
 
         const yScales = {};  // yScales[v] for each variable

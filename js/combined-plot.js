@@ -7,6 +7,23 @@
     const combinedFlagsVisibleState = global.__combinedFlagsVisibleState || (global.__combinedFlagsVisibleState = {});
     const zoomFlagsVisibleState = global.__zoomFlagsVisibleState || (global.__zoomFlagsVisibleState = {});
 
+    // Force the x-axis to span the requested time range (default full day) rather than
+    // wherever the actual data happens to start/end, so plots line up across variable groups.
+    function computeDayDomain(date, hs, he, allValidPoints, parseTime) {
+        const dateDigits = String(date || '').replace(/\D/g, '');
+        if (dateDigits.length >= 8) {
+            const y = dateDigits.slice(0, 4);
+            const m = dateDigits.slice(4, 6);
+            const d = dateDigits.slice(6, 8);
+            const startStr = `${y}-${m}-${d} ${hs || '00:00'}:00`;
+            const endStr = `${y}-${m}-${d} ${he || '23:59'}:59`;
+            const start = parseTime(startStr);
+            const end = parseTime(endStr);
+            if (start && end) return [start, end];
+        }
+        return d3.extent(allValidPoints, d => d.parsedDate);
+    }
+
     function initTooltip() {
         if (tooltip) return tooltip;
         tooltip = d3.select('body')
@@ -265,7 +282,7 @@
         const height = outerChartHeight - margin.top - margin.bottom;
 
         const x = d3.scaleUtc()
-            .domain(d3.extent(allValidPoints, d => d.parsedDate))
+            .domain(computeDayDomain(date, hs, he, allValidPoints, parseTime))
             .range([0, width]);
 
         // Create separate y-scales for each variable
